@@ -46,22 +46,24 @@ export function WhatsappQrConnection() {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Smartphone className="w-5 h-5" />
-                    Conexão via QR Code (WhatsApp Web)
+                <CardTitle className="flex items-center gap-2 text-lg md:text-xl">
+                    <Smartphone className="w-5 h-5 md:w-6 md:h-6" />
+                    WhatsApp Business Web
                 </CardTitle>
                 <CardDescription>
-                    Escaneie o QR Code com seu celular para conectar uma sessão do WhatsApp Web.
+                    Conecte sua conta empresarial para usar o CRM como uma extensão do seu WhatsApp.
                 </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center min-h-[300px] space-y-6">
+            <CardContent className="flex flex-col items-center justify-center min-h-[300px] space-y-6 p-4 md:p-6">
                 {status === "disconnected" && (
-                    <div className="text-center space-y-4">
+                    <div className="text-center space-y-4 w-full max-w-sm">
                         <div className="p-4 bg-muted rounded-full inline-block">
-                            <Smartphone className="w-12 h-12 text-muted-foreground" />
+                            <Smartphone className="w-10 h-10 md:w-12 md:h-12 text-muted-foreground" />
                         </div>
-                        <p className="text-muted-foreground">Nenhum dispositivo conectado.</p>
-                        <Button onClick={generateQr}>Gerar QR Code</Button>
+                        <p className="text-muted-foreground px-4">
+                            Nenhum dispositivo conectado. Gere o QR Code para parear.
+                        </p>
+                        <Button onClick={generateQr} className="w-full md:w-auto">Gerar QR Code</Button>
                     </div>
                 )}
 
