@@ -38,9 +38,10 @@ const channelColors: Record<string, string> = {
 interface ChatWindowProps {
   conversation: Conversation
   onToggleProfile: () => void
+  onSendMessage?: (text: string) => void
 }
 
-export function ChatWindow({ conversation, onToggleProfile }: ChatWindowProps) {
+export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: ChatWindowProps) {
   const [message, setMessage] = useState("")
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -50,6 +51,9 @@ export function ChatWindow({ conversation, onToggleProfile }: ChatWindowProps) {
 
   const handleSend = () => {
     if (!message.trim()) return
+    if (onSendMessage) {
+      onSendMessage(message)
+    }
     setMessage("")
   }
 
@@ -151,10 +155,9 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
       <div
         className={`
           max-w-[70%] rounded-2xl px-4 py-3 shadow-sm
-          ${
-            isContact
-              ? "bg-card border border-border/50 rounded-bl-md"
-              : "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
+          ${isContact
+            ? "bg-card border border-border/50 rounded-bl-md"
+            : "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
           }
           ${isBot ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-foreground" : ""}
         `}
