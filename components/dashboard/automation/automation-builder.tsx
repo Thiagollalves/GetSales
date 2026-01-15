@@ -25,6 +25,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 const nodeIcons: Record<string, React.ReactNode> = {
   clock: <Clock className="h-4 w-4" />,
@@ -127,6 +128,14 @@ export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps
     setNodes(newNodes)
   }
 
+  const handleTestAutomation = () => {
+    notifyAction("Testar automação", `Executando um teste para "${name}".`)
+  }
+
+  const handleSaveAutomation = () => {
+    notifyAction("Salvar automação", `Automação "${name}" salva com sucesso.`)
+  }
+
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
@@ -148,11 +157,11 @@ export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" className="gap-2 bg-secondary/50">
+          <Button variant="outline" className="gap-2 bg-secondary/50" onClick={handleTestAutomation}>
             <Play className="h-4 w-4" />
             Testar
           </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/20">
+          <Button className="gap-2 shadow-lg shadow-primary/20" onClick={handleSaveAutomation}>
             <Save className="h-4 w-4" />
             Salvar
           </Button>

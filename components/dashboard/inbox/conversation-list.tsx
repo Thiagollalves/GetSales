@@ -4,6 +4,7 @@ import type { Conversation } from "@/app/dashboard/inbox/page"
 import { Input } from "@/components/ui/input"
 import { Search, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { notifyAction } from "@/lib/button-actions"
 
 const channelColors: Record<string, string> = {
   whatsapp: "bg-green-500",
@@ -20,13 +21,17 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+  const handleFilter = () => {
+    notifyAction("Filtros da inbox", "Abra filtros para segmentar conversas.")
+  }
+
   return (
     <div className="w-80 border-r border-border bg-card flex flex-col">
       {/* Header */}
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Inbox</h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8">
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleFilter}>
             <Filter className="h-4 w-4" />
           </Button>
         </div>

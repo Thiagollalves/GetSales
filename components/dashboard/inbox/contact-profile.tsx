@@ -1,12 +1,35 @@
+"use client"
+
 import type { Conversation } from "@/app/dashboard/inbox/page"
 import { Button } from "@/components/ui/button"
 import { Phone, Mail, MapPin, Calendar, Tag, TrendingUp, Edit } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 interface ContactProfileProps {
   conversation: Conversation
 }
 
 export function ContactProfile({ conversation }: ContactProfileProps) {
+  const handleEditProfile = () => {
+    notifyAction("Editar contato", `Abrindo edição de ${conversation.name}.`)
+  }
+
+  const handleAddTag = () => {
+    notifyAction("Adicionar tag", "Abrindo seletor de tags.")
+  }
+
+  const handleCall = () => {
+    notifyAction("Ligar", `Iniciando chamada para ${conversation.name}.`)
+  }
+
+  const handleSchedule = () => {
+    notifyAction("Agendar reunião", `Abrindo agenda para ${conversation.name}.`)
+  }
+
+  const handleBlock = () => {
+    notifyAction("Bloquear contato", `${conversation.name} será bloqueado após confirmação.`)
+  }
+
   return (
     <div className="w-80 border-l border-border bg-card p-4 overflow-y-auto">
       {/* Profile Header */}
@@ -42,7 +65,7 @@ export function ContactProfile({ conversation }: ContactProfileProps) {
       <div className="py-4 border-b border-border space-y-3">
         <h4 className="text-sm font-semibold flex items-center gap-2">
           Informações
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto">
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={handleEditProfile}>
             <Edit className="h-3 w-3" />
           </Button>
         </h4>
@@ -78,7 +101,7 @@ export function ContactProfile({ conversation }: ContactProfileProps) {
               {tag}
             </span>
           ))}
-          <Button variant="outline" size="sm" className="h-6 text-xs bg-transparent">
+          <Button variant="outline" size="sm" className="h-6 text-xs bg-transparent" onClick={handleAddTag}>
             + Adicionar
           </Button>
         </div>
@@ -86,17 +109,18 @@ export function ContactProfile({ conversation }: ContactProfileProps) {
 
       {/* Actions */}
       <div className="py-4 space-y-2">
-        <Button variant="outline" className="w-full justify-start bg-transparent">
+        <Button variant="outline" className="w-full justify-start bg-transparent" onClick={handleCall}>
           <Phone className="h-4 w-4 mr-2" />
           Ligar
         </Button>
-        <Button variant="outline" className="w-full justify-start bg-transparent">
+        <Button variant="outline" className="w-full justify-start bg-transparent" onClick={handleSchedule}>
           <Calendar className="h-4 w-4 mr-2" />
           Agendar reunião
         </Button>
         <Button
           variant="outline"
           className="w-full justify-start text-destructive hover:text-destructive bg-transparent"
+          onClick={handleBlock}
         >
           Bloquear contato
         </Button>

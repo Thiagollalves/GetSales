@@ -18,6 +18,7 @@ import {
   ChevronRight,
   LogOut,
 } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -35,6 +36,10 @@ const bottomNavItems = [{ href: "/dashboard/settings", label: "Configurações",
 export function DashboardSidebar() {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+
+  const handleLogout = () => {
+    notifyAction("Sair", "Encerrando a sessão do usuário.")
+  }
 
   return (
     <>
@@ -164,7 +169,11 @@ export function DashboardSidebar() {
               <p className="text-sm font-medium text-sidebar-foreground truncate">Usuário</p>
               <p className="text-xs text-sidebar-muted truncate">usuario@empresa.com</p>
             </div>
-            <button className="p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors">
+            <button
+              className="p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors"
+              onClick={handleLogout}
+              type="button"
+            >
               <LogOut className="h-4 w-4" />
             </button>
           </div>

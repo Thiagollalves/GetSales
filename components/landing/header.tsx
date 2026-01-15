@@ -1,7 +1,14 @@
+"use client"
+
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
+import { notifyAction } from "@/lib/button-actions"
 
 export function LandingHeader() {
+  const handleLanguageChange = (language: string) => {
+    notifyAction("Idioma alterado", `Idioma selecionado: ${language}.`)
+  }
+
   return (
     <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
       <div className="pl-12 lg:pl-0">
@@ -14,13 +21,13 @@ export function LandingHeader() {
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => handleLanguageChange("Português")}>
           Português
         </Button>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => handleLanguageChange("English")}>
           English
         </Button>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="sm" onClick={() => handleLanguageChange("Español")}>
           Español
         </Button>
         <Button asChild>

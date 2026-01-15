@@ -18,6 +18,7 @@ import {
   Phone,
   Video,
 } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 const channelLabels: Record<string, string> = {
   whatsapp: "WhatsApp",
@@ -57,6 +58,34 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
     setMessage("")
   }
 
+  const handleStartCall = () => {
+    notifyAction("Chamada de voz", `Iniciando chamada com ${conversation.name}.`)
+  }
+
+  const handleStartVideo = () => {
+    notifyAction("Chamada de vídeo", `Iniciando vídeo com ${conversation.name}.`)
+  }
+
+  const handleMoreOptions = () => {
+    notifyAction("Mais opções", "Abrindo opções adicionais da conversa.")
+  }
+
+  const handleAttachFile = () => {
+    notifyAction("Anexar arquivo", "Selecione um arquivo para enviar.")
+  }
+
+  const handleAttachImage = () => {
+    notifyAction("Enviar imagem", "Selecione uma imagem para enviar.")
+  }
+
+  const handleEmojiPicker = () => {
+    notifyAction("Emojis", "Abrindo seletor de emojis.")
+  }
+
+  const handleVoiceNote = () => {
+    notifyAction("Mensagem de voz", "Grave uma mensagem de voz.")
+  }
+
   return (
     <div className="flex-1 flex flex-col bg-background">
       {/* Chat Header */}
@@ -79,10 +108,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleStartCall}
+          >
             <Phone className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleStartVideo}
+          >
             <Video className="h-4 w-4" />
           </Button>
           <Button
@@ -93,7 +132,12 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           >
             <User className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleMoreOptions}
+          >
             <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
@@ -110,10 +154,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
       {/* Input Area */}
       <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
         <div className="flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleAttachFile}
+          >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleAttachImage}
+          >
             <ImageIcon className="h-4 w-4" />
           </Button>
           <Input
@@ -123,10 +177,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2"
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleEmojiPicker}
+          >
             <Smile className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleVoiceNote}
+          >
             <Mic className="h-4 w-4" />
           </Button>
           <Button
