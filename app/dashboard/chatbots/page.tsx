@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { Bot, Plus, MessagesSquare, Play, Pause } from "lucide-react";
+import { Bot, Plus, MessagesSquare } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { notifyAction } from "@/lib/button-actions";
 
 interface Bot {
     id: number
@@ -36,11 +37,15 @@ export default function ChatbotsPage() {
         }));
     };
 
+    const handleNewAgent = () => {
+        notifyAction("Novo agente", "Abrindo o fluxo para criar um novo agente.");
+    };
+
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">Chatbots & Automação</h2>
-                <Button>
+                <Button onClick={handleNewAgent}>
                     <Plus className="mr-2 h-4 w-4" /> Novo Agente
                 </Button>
             </div>

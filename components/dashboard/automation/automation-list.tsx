@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Plus, Play, Pause, MoreHorizontal, Zap, Clock, TrendingUp, FileText } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { notifyAction } from "@/lib/button-actions"
 
 const triggerIcons: Record<string, React.ReactNode> = {
   inactivity: <Clock className="h-4 w-4" />,
@@ -21,6 +22,10 @@ interface AutomationListProps {
 }
 
 export function AutomationList({ automations, onSelect, onCreate }: AutomationListProps) {
+  const handleMenuAction = (action: string, automation: Automation) => {
+    notifyAction(`Automação: ${action}`, `Ação "${action}" aplicada em ${automation.name}.`)
+  }
+
   return (
     <div className="p-6 lg:p-8 space-y-6">
       {/* Header */}
@@ -122,19 +127,28 @@ export function AutomationList({ automations, onSelect, onCreate }: AutomationLi
                 </div>
               </div>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                  <Button variant="ghost" size="icon">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem>Editar</DropdownMenuItem>
-                  <DropdownMenuItem>Duplicar</DropdownMenuItem>
-                  <DropdownMenuItem>{automation.status === "active" ? "Pausar" : "Ativar"}</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                    <Button variant="ghost" size="icon">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleMenuAction("Editar", automation)}>Editar</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => handleMenuAction("Duplicar", automation)}>Duplicar</DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={() => handleMenuAction(automation.status === "active" ? "Pausar" : "Ativar", automation)}
+                    >
+                      {automation.status === "active" ? "Pausar" : "Ativar"}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive"
+                      onSelect={() => handleMenuAction("Excluir", automation)}
+                    >
+                      Excluir
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
             </div>
           </Card>
         ))}

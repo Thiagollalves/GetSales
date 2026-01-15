@@ -1,7 +1,7 @@
 "use client"
 
-import type { Conversation, Message } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect } from "react"
+import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
+import { useState, useRef, useEffect, type ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -18,6 +18,7 @@ import {
   Phone,
   Video,
 } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 const channelLabels: Record<string, string> = {
   whatsapp: "WhatsApp",
@@ -38,12 +39,19 @@ const channelColors: Record<string, string> = {
 interface ChatWindowProps {
   conversation: Conversation
   onToggleProfile: () => void
-  onSendMessage?: (text: string) => void
+  onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
 }
 
 export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: ChatWindowProps) {
   const [message, setMessage] = useState("")
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const recorderChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -52,9 +60,103 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   const handleSend = () => {
     if (!message.trim()) return
     if (onSendMessage) {
-      onSendMessage(message)
+      onSendMessage({ text: message })
     }
     setMessage("")
+  }
+
+  const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
+    if (onSendMessage) {
+      onSendMessage({ text: fallbackText, attachment })
+    }
+  }
+
+  const handleStartCall = () => {
+    notifyAction("Chamada de voz", `Iniciando chamada com ${conversation.name}.`)
+  }
+
+  const handleStartVideo = () => {
+    notifyAction("Chamada de vídeo", `Iniciando vídeo com ${conversation.name}.`)
+  }
+
+  const handleMoreOptions = () => {
+    notifyAction("Mais opções", "Abrindo opções adicionais da conversa.")
+  }
+
+  const handleAttachFile = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAttachImage = () => {
+    mediaInputRef.current?.click()
+  }
+
+  const handleEmojiPicker = () => {
+    setShowEmojiPicker((prev) => !prev)
+  }
+
+  const handleVoiceNote = async () => {
+    if (isRecording) {
+      recorderRef.current?.stop()
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      notifyAction("Áudio indisponível", "Seu navegador não suporta gravação de áudio.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorderRef.current = recorder
+      recorderChunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recorderChunksRef.current.push(event.data)
+        }
+      }
+      recorder.onstop = () => {
+        const audioBlob = new Blob(recorderChunksRef.current, { type: "audio/webm" })
+        const url = URL.createObjectURL(audioBlob)
+        handleSendAttachment({ type: "audio", url, name: "audio.webm" }, "Áudio enviado")
+        stream.getTracks().forEach((track) => track.stop())
+        recorderRef.current = null
+        recorderChunksRef.current = []
+        setIsRecording(false)
+      }
+      recorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      notifyAction("Permissão negada", "Não foi possível acessar o microfone.")
+    }
+  }
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, type: "file" | "image" | "video") => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    handleSendAttachment({ type, url, name: file.name }, `Arquivo enviado: ${file.name}`)
+    event.target.value = ""
+  }
+
+  const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
+  const quickReplies = [
+    "Olá! Como posso ajudar?",
+    "Já estamos verificando para você.",
+    "Pode me confirmar seus dados?",
+    "Obrigado pelo contato! 😊",
+  ]
+
+  const insertEmoji = (emoji: string) => {
+    setMessage((prev) => `${prev}${emoji}`)
+    setShowEmojiPicker(false)
+    inputRef.current?.focus()
+  }
+
+  const handleQuickReply = (reply: string) => {
+    setMessage((prev) => (prev.trim() ? `${prev} ${reply}` : reply))
+    inputRef.current?.focus()
   }
 
   return (
@@ -79,10 +181,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleStartCall}
+          >
             <Phone className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleStartVideo}
+          >
             <Video className="h-4 w-4" />
           </Button>
           <Button
@@ -93,7 +205,12 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           >
             <User className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={handleMoreOptions}
+          >
             <MoreVertical className="h-4 w-4" />
           </Button>
         </div>
@@ -109,25 +226,90 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
       {/* Input Area */}
       <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+        <div className="relative flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => handleFileChange(event, "file")}
+          />
+          <input
+            ref={mediaInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (!file) return
+              const attachmentType = file.type.startsWith("video") ? "video" : "image"
+              handleFileChange(event, attachmentType)
+            }}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleAttachFile}
+          >
             <Paperclip className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleAttachImage}
+          >
             <ImageIcon className="h-4 w-4" />
           </Button>
           <Input
+            ref={inputRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             placeholder="Digite sua mensagem..."
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2"
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleEmojiPicker}
+          >
             <Smile className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary">
-            <Mic className="h-4 w-4" />
+          <div className="hidden lg:flex items-center gap-2">
+            {quickReplies.map((reply) => (
+              <button
+                key={reply}
+                type="button"
+                className="text-xs px-2 py-1 rounded-full bg-card border border-border/50 hover:bg-secondary"
+                onClick={() => handleQuickReply(reply)}
+              >
+                {reply}
+              </button>
+            ))}
+          </div>
+          {showEmojiPicker && (
+            <div className="absolute bottom-14 right-16 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
+              {emojiList.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="h-9 w-9 rounded-lg hover:bg-secondary text-lg"
+                  onClick={() => insertEmoji(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleVoiceNote}
+          >
+            <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
           </Button>
           <Button
             size="icon"
@@ -162,13 +344,39 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
           ${isBot ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-foreground" : ""}
         `}
       >
+        {message.attachment && (
+          <div className="mb-2">
+            {message.attachment.type === "image" && (
+              <img
+                src={message.attachment.url}
+                alt={message.attachment.name}
+                className="max-w-full rounded-lg border border-border/50"
+              />
+            )}
+            {message.attachment.type === "video" && (
+              <video src={message.attachment.url} controls className="max-w-full rounded-lg border border-border/50" />
+            )}
+            {message.attachment.type === "audio" && (
+              <audio src={message.attachment.url} controls className="w-full" />
+            )}
+            {message.attachment.type === "file" && (
+              <a
+                href={message.attachment.url}
+                download={message.attachment.name}
+                className="text-sm text-primary underline"
+              >
+                {message.attachment.name}
+              </a>
+            )}
+          </div>
+        )}
         {isBot && (
           <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1.5">
             <Bot className="h-3 w-3" />
             <span className="font-medium">Assistente IA</span>
           </div>
         )}
-        <p className="text-sm leading-relaxed">{message.content}</p>
+        {message.content && <p className="text-sm leading-relaxed">{message.content}</p>}
         <div className={`flex items-center gap-1.5 mt-2 ${isContact ? "justify-start" : "justify-end"}`}>
           <span className={`text-xs ${isContact ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
             {message.time}

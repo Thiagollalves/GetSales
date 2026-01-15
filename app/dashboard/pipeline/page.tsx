@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import { useState } from "react";
 import {
   DndContext,
   closestCorners,
@@ -27,10 +27,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
-  Plus, MoreHorizontal, DollarSign, Calendar, MessageSquare, Phone, Mail,
-  GripVertical, Search, Filter, Sparkles
+  Plus,
+  MoreHorizontal,
+  DollarSign,
+  Calendar,
+  GripVertical,
+  Search,
+  Filter,
+  Sparkles,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { notifyAction } from "@/lib/button-actions";
 
 // --- Types ---
 interface Lead {
@@ -110,6 +117,13 @@ const channelColors: Record<string, string> = {
   telegram: "bg-blue-500",
   email: "bg-gray-500",
 };
+
+const stagePalette = [
+  { color: "bg-sky-500", bgGradient: "from-sky-500/10" },
+  { color: "bg-emerald-500", bgGradient: "from-emerald-500/10" },
+  { color: "bg-fuchsia-500", bgGradient: "from-fuchsia-500/10" },
+  { color: "bg-rose-500", bgGradient: "from-rose-500/10" },
+];
 
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(value);
@@ -197,6 +211,61 @@ export default function PipelinePage() {
 
   const findStage = (id: string) => {
     return stages.find(s => s.id === id || s.leads.some(l => l.id === id));
+  };
+
+  const createLead = (stageId: string): Lead => {
+    const leadNumber = stages.reduce((sum, stage) => sum + stage.leads.length, 0) + 1;
+    return {
+      id: `${stageId}-${Date.now()}`,
+      name: `Novo Lead ${leadNumber}`,
+      company: "Nova Empresa",
+      value: 12000,
+      channel: "whatsapp",
+      lastContact: "Agora",
+      score: 50,
+      avatar: "NL",
+    };
+  };
+
+  const handleFilterClick = () => {
+    notifyAction("Filtros do pipeline", "Abra o painel de filtros para segmentar seus leads.");
+  };
+
+  const handleAddLead = (stageId?: string) => {
+    if (!stageId) {
+      notifyAction("Nenhuma etapa disponível", "Crie uma etapa antes de adicionar um lead.");
+      return;
+    }
+
+    const stage = stages.find((s) => s.id === stageId);
+    if (!stage) {
+      notifyAction("Etapa não encontrada", "Selecione outra etapa para adicionar o lead.");
+      return;
+    }
+
+    const newLead = createLead(stageId);
+    setStages((prev) =>
+      prev.map((s) => (s.id === stageId ? { ...s, leads: [newLead, ...s.leads] } : s))
+    );
+    notifyAction("Lead adicionado", `Lead criado na etapa ${stage.title}.`);
+  };
+
+  const handleAddStage = () => {
+    const palette = stagePalette[stages.length % stagePalette.length];
+    const newStage: Stage = {
+      id: `stage-${Date.now()}`,
+      title: `Nova Etapa ${stages.length + 1}`,
+      color: palette.color,
+      bgGradient: palette.bgGradient,
+      leads: [],
+    };
+
+    setStages((prev) => [...prev, newStage]);
+    notifyAction("Etapa criada", "Nova etapa adicionada ao pipeline.");
+  };
+
+  const handleStageOptions = (title: string) => {
+    notifyAction("Opções da etapa", `Abrindo opções de ${title}.`);
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -312,10 +381,10 @@ export default function PipelinePage() {
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input placeholder="Buscar lead..." className="pl-9 w-64 bg-secondary/50" />
           </div>
-          <Button variant="outline" size="icon" className="bg-secondary/50">
+          <Button variant="outline" size="icon" className="bg-secondary/50" onClick={handleFilterClick}>
             <Filter className="h-4 w-4" />
           </Button>
-          <Button className="gap-2 shadow-lg shadow-primary/20">
+          <Button className="gap-2 shadow-lg shadow-primary/20" onClick={() => handleAddLead(stages[0]?.id)}>
             <Plus className="h-4 w-4" />
             Novo Lead
           </Button>
@@ -353,7 +422,9 @@ export default function PipelinePage() {
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent><DropdownMenuItem>Opções</DropdownMenuItem></DropdownMenuContent>
+                    <DropdownMenuContent>
+                      <DropdownMenuItem onSelect={() => handleStageOptions(stage.title)}>Opções</DropdownMenuItem>
+                    </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
                 <div className="px-4 pb-3">
@@ -374,7 +445,11 @@ export default function PipelinePage() {
                     ))}
                   </SortableContext>
                   {/* Button New Lead */}
-                  <Button variant="ghost" className="w-full mt-2 border border-dashed border-border h-10">
+                  <Button
+                    variant="ghost"
+                    className="w-full mt-2 border border-dashed border-border h-10"
+                    onClick={() => handleAddLead(stage.id)}
+                  >
                     <Plus className="h-4 w-4 mr-2" /> Lead
                   </Button>
                 </div>
@@ -383,7 +458,7 @@ export default function PipelinePage() {
 
             {/* Add Stage Column Placeholder */}
             <div className="w-80 shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-              <Button variant="outline" className="w-full h-12 border-dashed">
+              <Button variant="outline" className="w-full h-12 border-dashed" onClick={handleAddStage}>
                 <Plus className="h-4 w-4 mr-2" /> Nova Etapa
               </Button>
             </div>
