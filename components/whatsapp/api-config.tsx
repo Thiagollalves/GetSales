@@ -37,7 +37,8 @@ export function WhatsappApiConfig() {
                     API Oficial do WhatsApp (Cloud API)
                 </CardTitle>
                 <CardDescription>
-                    Configure suas credenciais do Meta for Developers para enviar mensagens.
+                    Configure suas credenciais do Meta for Developers para enviar mensagens. Em produção,
+                    mantenha os tokens em variáveis de ambiente.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
