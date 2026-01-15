@@ -14,8 +14,7 @@ export function DashboardHeader() {
   }
 
   const handleNewConversation = () => {
-    router.push("/dashboard/inbox")
-    window.dispatchEvent(new CustomEvent("dashboard:new-conversation"))
+    router.push("/dashboard/inbox?newConversation=1")
   }
 
   return (

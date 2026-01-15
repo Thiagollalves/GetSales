@@ -1,11 +1,12 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
 import { ChatWindow } from "@/components/dashboard/inbox/chat-window"
 import { ContactProfile } from "@/components/dashboard/inbox/contact-profile"
 import { toast } from "sonner"
 import { initialConversations, type Conversation, type Message, type Attachment } from "@/lib/mock-data"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export type { Conversation, Message, Attachment }
 
@@ -14,6 +15,9 @@ export default function InboxPage() {
   const [selectedId, setSelectedId] = useState<number | null>(1)
   const [showProfile, setShowProfile] = useState(true)
   const [newChatCounter, setNewChatCounter] = useState(1)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const hasHandledQueryRef = useRef(false)
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null
 
@@ -78,6 +82,18 @@ export default function InboxPage() {
     window.addEventListener("dashboard:new-conversation", handleNewConversation)
     return () => window.removeEventListener("dashboard:new-conversation", handleNewConversation)
   }, [createConversation])
+
+  useEffect(() => {
+    const shouldCreate = searchParams.get("newConversation") === "1"
+    if (!shouldCreate || hasHandledQueryRef.current) return
+
+    createConversation()
+    hasHandledQueryRef.current = true
+    const nextParams = new URLSearchParams(searchParams)
+    nextParams.delete("newConversation")
+    const nextQuery = nextParams.toString()
+    router.replace(`/dashboard/inbox${nextQuery ? `?${nextQuery}` : ""}`, { scroll: false })
+  }, [createConversation, router, searchParams])
 
   const handleSendMessage = async ({ text, attachment }: { text?: string; attachment?: Attachment }) => {
     if (!selectedConversation) return
