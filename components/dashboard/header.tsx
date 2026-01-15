@@ -3,15 +3,19 @@
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Bell, Search, Plus } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { notifyAction } from "@/lib/button-actions"
 
 export function DashboardHeader() {
+  const router = useRouter()
+
   const handleNotifications = () => {
     notifyAction("Notificações", "Abrindo central de notificações.");
   }
 
   const handleNewConversation = () => {
-    notifyAction("Nova conversa", "Abrindo o fluxo para iniciar uma nova conversa.");
+    router.push("/dashboard/inbox")
+    window.dispatchEvent(new CustomEvent("dashboard:new-conversation"))
   }
 
   return (

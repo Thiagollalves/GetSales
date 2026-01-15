@@ -24,15 +24,15 @@ Este documento lista os botões do produto, suas funções e o comportamento ass
 | Inbox > Chat | Vídeo | `handleStartVideo` | Dispara chamada de vídeo (toast informativo). |
 | Inbox > Chat | Perfil | `onToggleProfile` | Abre/fecha o painel lateral do contato. |
 | Inbox > Chat | Mais opções | `handleMoreOptions` | Abre ações adicionais (toast informativo). |
-| Inbox > Chat | Anexar arquivo | `handleAttachFile` | Abre seletor de arquivos (toast informativo). |
-| Inbox > Chat | Enviar imagem | `handleAttachImage` | Abre seletor de imagens (toast informativo). |
-| Inbox > Chat | Emojis | `handleEmojiPicker` | Abre seletor de emojis (toast informativo). |
-| Inbox > Chat | Áudio | `handleVoiceNote` | Inicia gravação de voz (toast informativo). |
+| Inbox > Chat | Anexar arquivo | `handleAttachFile` | Abre seletor e envia anexos. |
+| Inbox > Chat | Enviar imagem | `handleAttachImage` | Faz upload de imagens e vídeos. |
+| Inbox > Chat | Emojis | `handleEmojiPicker` | Abre seletor de emojis embutido. |
+| Inbox > Chat | Áudio | `handleVoiceNote` | Grava e envia áudio. |
 | Inbox > Chat | Enviar | `handleSend` | Envia mensagem e atualiza conversa. |
-| Inbox > Perfil | Editar | `handleEditProfile` | Abre edição do contato (toast informativo). |
-| Inbox > Perfil | + Adicionar tag | `handleAddTag` | Abre seletor de tags (toast informativo). |
+| Inbox > Perfil | Editar | `handleEditProfile` | Abre formulário editável do contato. |
+| Inbox > Perfil | + Adicionar tag | `handleAddTag` | Cria tags customizadas. |
 | Inbox > Perfil | Ligar | `handleCall` | Inicia chamada (toast informativo). |
-| Inbox > Perfil | Agendar reunião | `handleSchedule` | Abre agenda (toast informativo). |
+| Inbox > Perfil | Agendar reunião | `handleScheduleMeeting` | Abre mini-calendário para escolha de data. |
 | Inbox > Perfil | Bloquear contato | `handleBlock` | Solicita confirmação de bloqueio (toast informativo). |
 | Automações (lista) | Nova Automação | `onCreate` | Abre o construtor para uma nova automação. |
 | Automações (lista) | Menu: Editar | `handleMenuAction` | Aciona fluxo de edição (toast informativo). |
@@ -45,7 +45,7 @@ Este documento lista os botões do produto, suas funções e o comportamento ass
 | Automações (builder) | Itens da paleta de componentes | `addNode` | Adiciona um componente ao fluxo. |
 | Automações (builder) | Adicionar etapa | `addNode` | Cria uma nova etapa no fluxo. |
 | Header do dashboard | Notificações | `handleNotifications` | Abre central de notificações (toast informativo). |
-| Header do dashboard | Nova conversa | `handleNewConversation` | Inicia nova conversa (toast informativo). |
+| Header do dashboard | Nova conversa | `handleNewConversation` | Abre a inbox e cria uma nova conversa. |
 | Sidebar do dashboard | Menu mobile (abrir/fechar) | `setMobileOpen` | Alterna visibilidade no mobile. |
 | Sidebar do dashboard | Sair | `handleLogout` | Encerra sessão (toast informativo). |
 

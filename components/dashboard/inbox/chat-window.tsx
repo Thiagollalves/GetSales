@@ -1,7 +1,7 @@
 "use client"
 
-import type { Conversation, Message } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect } from "react"
+import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
+import { useState, useRef, useEffect, type ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -39,12 +39,18 @@ const channelColors: Record<string, string> = {
 interface ChatWindowProps {
   conversation: Conversation
   onToggleProfile: () => void
-  onSendMessage?: (text: string) => void
+  onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
 }
 
 export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: ChatWindowProps) {
   const [message, setMessage] = useState("")
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const recorderChunksRef = useRef<Blob[]>([])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -53,9 +59,15 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   const handleSend = () => {
     if (!message.trim()) return
     if (onSendMessage) {
-      onSendMessage(message)
+      onSendMessage({ text: message })
     }
     setMessage("")
+  }
+
+  const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
+    if (onSendMessage) {
+      onSendMessage({ text: fallbackText, attachment })
+    }
   }
 
   const handleStartCall = () => {
@@ -71,19 +83,67 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const handleAttachFile = () => {
-    notifyAction("Anexar arquivo", "Selecione um arquivo para enviar.")
+    fileInputRef.current?.click()
   }
 
   const handleAttachImage = () => {
-    notifyAction("Enviar imagem", "Selecione uma imagem para enviar.")
+    mediaInputRef.current?.click()
   }
 
   const handleEmojiPicker = () => {
-    notifyAction("Emojis", "Abrindo seletor de emojis.")
+    setShowEmojiPicker((prev) => !prev)
   }
 
-  const handleVoiceNote = () => {
-    notifyAction("Mensagem de voz", "Grave uma mensagem de voz.")
+  const handleVoiceNote = async () => {
+    if (isRecording) {
+      recorderRef.current?.stop()
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      notifyAction("Áudio indisponível", "Seu navegador não suporta gravação de áudio.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorderRef.current = recorder
+      recorderChunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recorderChunksRef.current.push(event.data)
+        }
+      }
+      recorder.onstop = () => {
+        const audioBlob = new Blob(recorderChunksRef.current, { type: "audio/webm" })
+        const url = URL.createObjectURL(audioBlob)
+        handleSendAttachment({ type: "audio", url, name: "audio.webm" }, "Áudio enviado")
+        stream.getTracks().forEach((track) => track.stop())
+        recorderRef.current = null
+        recorderChunksRef.current = []
+        setIsRecording(false)
+      }
+      recorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      notifyAction("Permissão negada", "Não foi possível acessar o microfone.")
+    }
+  }
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, type: "file" | "image" | "video") => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    handleSendAttachment({ type, url, name: file.name }, `Arquivo enviado: ${file.name}`)
+    event.target.value = ""
+  }
+
+  const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
+
+  const insertEmoji = (emoji: string) => {
+    setMessage((prev) => `${prev}${emoji}`)
+    setShowEmojiPicker(false)
   }
 
   return (
@@ -153,7 +213,25 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
       {/* Input Area */}
       <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
+        <div className="relative flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            onChange={(event) => handleFileChange(event, "file")}
+          />
+          <input
+            ref={mediaInputRef}
+            type="file"
+            accept="image/*,video/*"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (!file) return
+              const attachmentType = file.type.startsWith("video") ? "video" : "image"
+              handleFileChange(event, attachmentType)
+            }}
+          />
           <Button
             variant="ghost"
             size="icon"
@@ -185,13 +263,27 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           >
             <Smile className="h-4 w-4" />
           </Button>
+          {showEmojiPicker && (
+            <div className="absolute bottom-14 right-16 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
+              {emojiList.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="h-9 w-9 rounded-lg hover:bg-secondary text-lg"
+                  onClick={() => insertEmoji(emoji)}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
           <Button
             variant="ghost"
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
             onClick={handleVoiceNote}
           >
-            <Mic className="h-4 w-4" />
+            <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
           </Button>
           <Button
             size="icon"
@@ -226,13 +318,39 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
           ${isBot ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-foreground" : ""}
         `}
       >
+        {message.attachment && (
+          <div className="mb-2">
+            {message.attachment.type === "image" && (
+              <img
+                src={message.attachment.url}
+                alt={message.attachment.name}
+                className="max-w-full rounded-lg border border-border/50"
+              />
+            )}
+            {message.attachment.type === "video" && (
+              <video src={message.attachment.url} controls className="max-w-full rounded-lg border border-border/50" />
+            )}
+            {message.attachment.type === "audio" && (
+              <audio src={message.attachment.url} controls className="w-full" />
+            )}
+            {message.attachment.type === "file" && (
+              <a
+                href={message.attachment.url}
+                download={message.attachment.name}
+                className="text-sm text-primary underline"
+              >
+                {message.attachment.name}
+              </a>
+            )}
+          </div>
+        )}
         {isBot && (
           <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1.5">
             <Bot className="h-3 w-3" />
             <span className="font-medium">Assistente IA</span>
           </div>
         )}
-        <p className="text-sm leading-relaxed">{message.content}</p>
+        {message.content && <p className="text-sm leading-relaxed">{message.content}</p>}
         <div className={`flex items-center gap-1.5 mt-2 ${isContact ? "justify-start" : "justify-end"}`}>
           <span className={`text-xs ${isContact ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
             {message.time}
