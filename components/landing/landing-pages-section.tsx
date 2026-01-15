@@ -1,6 +1,9 @@
+"use client"
+
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { LayoutTemplate, FileInput, MessageCircle } from "lucide-react"
+import { notifyAction } from "@/lib/button-actions"
 
 const features = [
   {
@@ -24,6 +27,10 @@ const features = [
 ]
 
 export function LandingPagesSection() {
+  const handleFeatureAction = (cta: string) => {
+    notifyAction("Landing pages", `Ação selecionada: ${cta}.`)
+  }
+
   return (
     <section id="landing" className="scroll-mt-8">
       <div className="bg-secondary/50 rounded-3xl p-8">
@@ -43,7 +50,12 @@ export function LandingPagesSection() {
                 </div>
                 <h3 className="font-semibold text-card-foreground">{feature.title}</h3>
                 <p className="text-muted-foreground text-sm mt-2 leading-relaxed flex-1">{feature.description}</p>
-                <Button variant="outline" size="sm" className="mt-4 w-fit bg-transparent">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4 w-fit bg-transparent"
+                  onClick={() => handleFeatureAction(feature.cta)}
+                >
                   {feature.cta}
                 </Button>
               </Card>

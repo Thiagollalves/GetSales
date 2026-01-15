@@ -7,10 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, UserPlus, FileSpreadsheet } from "lucide-react";
+import { Search, UserPlus, FileSpreadsheet } from "lucide-react";
+import { notifyAction } from "@/lib/button-actions";
 
 export default function ContactsPage() {
     const [searchTerm, setSearchTerm] = useState("");
+
+    const handleImportContacts = () => {
+        notifyAction("Importar contatos", "Abra o fluxo para importar contatos via planilha.");
+    };
+
+    const handleAddContact = () => {
+        notifyAction("Novo contato", "Inicie o cadastro manual de um novo contato.");
+    };
+
+    const handleEditContact = (name: string) => {
+        notifyAction("Editar contato", `Abrindo cadastro de ${name}.`);
+    };
 
     const filteredContacts = initialConversations.filter(c =>
         c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -22,10 +35,10 @@ export default function ContactsPage() {
             <div className="flex items-center justify-between space-y-2">
                 <h2 className="text-3xl font-bold tracking-tight">Contatos</h2>
                 <div className="flex items-center space-x-2">
-                    <Button variant="outline">
+                    <Button variant="outline" onClick={handleImportContacts}>
                         <FileSpreadsheet className="mr-2 h-4 w-4" /> Importar
                     </Button>
-                    <Button>
+                    <Button onClick={handleAddContact}>
                         <UserPlus className="mr-2 h-4 w-4" /> Novo Contato
                     </Button>
                 </div>
@@ -85,7 +98,9 @@ export default function ContactsPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="ghost" size="sm">Editar</Button>
+                                        <Button variant="ghost" size="sm" onClick={() => handleEditContact(contact.name)}>
+                                            Editar
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}

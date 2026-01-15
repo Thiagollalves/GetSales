@@ -4,6 +4,13 @@ export interface Message {
     sender: "contact" | "agent" | "bot"
     time: string
     status?: "sent" | "delivered" | "read"
+    attachment?: Attachment
+}
+
+export type Attachment = {
+    type: "file" | "image" | "video" | "audio"
+    url: string
+    name: string
 }
 
 export interface Conversation {
@@ -17,7 +24,13 @@ export interface Conversation {
     score: number
     tags: string[]
     messages: Message[]
+    status: "novo" | "ativo" | "resolvido"
+    assignee?: string
     phone?: string
+    email?: string
+    location?: string
+    customerSince?: string
+    nextMeeting?: string
 }
 
 export interface Template {
@@ -45,7 +58,12 @@ export const initialConversations: Conversation[] = [
         unread: true,
         score: 85,
         tags: ["VIP", "Interessado"],
+        status: "ativo",
+        assignee: "Ana Souza",
         phone: "5511999999999",
+        email: "contato@email.com",
+        location: "São Paulo, SP",
+        customerSince: "Jan 2024",
         messages: [
             { id: 1, content: "Olá! Vi o anúncio de vocês no Instagram", sender: "contact", time: "10:30" },
             {
@@ -68,6 +86,11 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 62,
         tags: ["Lead"],
+        status: "ativo",
+        assignee: "Equipe Bot",
+        email: "joao@empresa.com",
+        location: "Rio de Janeiro, RJ",
+        customerSince: "Fev 2024",
         messages: [
             { id: 1, content: "Oi, vocês fazem integração com Shopify?", sender: "contact", time: "09:15" },
             {
@@ -89,6 +112,11 @@ export const initialConversations: Conversation[] = [
         unread: true,
         score: 78,
         tags: ["Cliente", "Suporte"],
+        status: "novo",
+        assignee: "Camila Rocha",
+        email: "ana@empresa.com",
+        location: "Curitiba, PR",
+        customerSince: "Mar 2024",
         messages: [{ id: 1, content: "Preciso de suporte técnico urgente", sender: "contact", time: "09:00" }],
     },
     {
@@ -101,6 +129,11 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 45,
         tags: ["Prospect"],
+        status: "ativo",
+        assignee: "Time Comercial",
+        email: "carlos@empresa.com",
+        location: "Belo Horizonte, MG",
+        customerSince: "Abr 2024",
         messages: [
             { id: 1, content: "Quando posso agendar uma demonstração?", sender: "contact", time: "08:30" },
             {
@@ -122,6 +155,11 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 55,
         tags: ["Lead"],
+        status: "resolvido",
+        assignee: "Equipe Bot",
+        email: "fernanda@empresa.com",
+        location: "Recife, PE",
+        customerSince: "Mai 2024",
         messages: [
             { id: 1, content: "Vocês têm trial gratuito?", sender: "contact", time: "07:30" },
             { id: 2, content: "Sim! Oferecemos 14 dias de teste gratuito.", sender: "bot", time: "07:30" },

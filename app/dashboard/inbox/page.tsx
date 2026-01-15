@@ -1,29 +1,95 @@
 "use client"
 
-import { useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
 import { ChatWindow } from "@/components/dashboard/inbox/chat-window"
 import { ContactProfile } from "@/components/dashboard/inbox/contact-profile"
 import { toast } from "sonner"
-import { initialConversations, Conversation, Message } from "@/lib/mock-data"
+import { initialConversations, type Conversation, type Message, type Attachment } from "@/lib/mock-data"
 
+export type { Conversation, Message, Attachment }
 
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId] = useState<number | null>(1)
   const [showProfile, setShowProfile] = useState(true)
+  const [newChatCounter, setNewChatCounter] = useState(1)
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null
 
-  const handleSendMessage = async (text: string) => {
+  const createConversation = useCallback(() => {
+    const counter = newChatCounter
+    const name = `Novo contato ${counter}`
+    const avatar = name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase()
+
+    const newConversation: Conversation = {
+      id: Date.now(),
+      name,
+      avatar,
+      channel: "whatsapp",
+      lastMessage: "Nova conversa iniciada",
+      time: "Agora",
+      unread: false,
+      score: 50,
+      tags: [],
+      messages: [],
+      status: "novo",
+      assignee: "Atendimento",
+      phone: "",
+      email: "",
+      location: "",
+      customerSince: "Agora",
+    }
+
+    setConversations((prev) => [newConversation, ...prev])
+    setSelectedId(newConversation.id)
+    setShowProfile(true)
+    setNewChatCounter((prev) => prev + 1)
+  }, [newChatCounter])
+
+  useEffect(() => {
+    const stored = localStorage.getItem("inbox_conversations")
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Conversation[]
+        if (parsed.length > 0) {
+          setConversations(parsed)
+        }
+      } catch (error) {
+        console.warn("Failed to load conversations", error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
+  }, [conversations])
+
+  useEffect(() => {
+    const handleNewConversation = () => {
+      createConversation()
+    }
+
+    window.addEventListener("dashboard:new-conversation", handleNewConversation)
+    return () => window.removeEventListener("dashboard:new-conversation", handleNewConversation)
+  }, [createConversation])
+
+  const handleSendMessage = async ({ text, attachment }: { text?: string; attachment?: Attachment }) => {
     if (!selectedConversation) return
+    if (!text && !attachment) return
 
     const newMessage: Message = {
       id: Date.now(),
-      content: text,
+      content: text ?? "",
       sender: "agent",
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: "sent"
+      status: "sent",
+      attachment,
     }
 
     // Update local state immediately
@@ -32,8 +98,9 @@ export default function InboxPage() {
         return {
           ...c,
           messages: [...c.messages, newMessage],
-          lastMessage: text,
-          time: "Agora"
+          lastMessage: text || attachment?.name || "Anexo enviado",
+          time: "Agora",
+          unread: false,
         }
       }
       return c
@@ -41,7 +108,7 @@ export default function InboxPage() {
     setConversations(updatedConversations)
 
     // Call API if channel is WhatsApp
-    if (selectedConversation.channel === 'whatsapp') {
+    if (selectedConversation.channel === 'whatsapp' && text) {
       const token = localStorage.getItem("wh_access_token");
       const phoneId = localStorage.getItem("wh_phone_id");
       // Use phone from conversation or fallback
@@ -55,7 +122,7 @@ export default function InboxPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 phone: targetPhone,
-                message: text,
+                message: text ?? "",
                 token,
                 phoneId
               })
@@ -78,6 +145,34 @@ export default function InboxPage() {
     }
   }
 
+  const handleUpdateTags = (conversationId: number, tags: string[]) => {
+    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, tags } : c)))
+  }
+
+  const handleUpdateScore = (conversationId: number, score: number) => {
+    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, score } : c)))
+  }
+
+  const handleUpdateProfile = (conversationId: number, updates: Partial<Conversation>) => {
+    setConversations((prev) =>
+      prev.map((c) => {
+        if (c.id !== conversationId) return c
+        const nextName = updates.name ?? c.name
+        const nextAvatar = nextName
+          .split(" ")
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
+        return { ...c, ...updates, avatar: nextAvatar }
+      })
+    )
+  }
+
+  const handleScheduleMeeting = (conversationId: number, nextMeeting: string) => {
+    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, nextMeeting } : c)))
+  }
+
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       <ConversationList
@@ -92,7 +187,15 @@ export default function InboxPage() {
             onToggleProfile={() => setShowProfile(!showProfile)}
             onSendMessage={handleSendMessage}
           />
-          {showProfile && <ContactProfile conversation={selectedConversation} />}
+          {showProfile && (
+            <ContactProfile
+              conversation={selectedConversation}
+              onUpdateTags={handleUpdateTags}
+              onUpdateScore={handleUpdateScore}
+              onUpdateProfile={handleUpdateProfile}
+              onScheduleMeeting={handleScheduleMeeting}
+            />
+          )}
         </>
       ) : (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">
