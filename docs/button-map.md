@@ -28,11 +28,13 @@ Este documento lista os botões do produto, suas funções e o comportamento ass
 | Inbox > Chat | Enviar imagem | `handleAttachImage` | Faz upload de imagens e vídeos. |
 | Inbox > Chat | Emojis | `handleEmojiPicker` | Abre seletor de emojis embutido. |
 | Inbox > Chat | Áudio | `handleVoiceNote` | Grava e envia áudio. |
+| Inbox > Chat | Respostas rápidas | `setMessage` | Preenche a mensagem com um texto rápido. |
 | Inbox > Chat | Enviar | `handleSend` | Envia mensagem e atualiza conversa. |
 | Inbox > Perfil | Editar | `handleEditProfile` | Abre formulário editável do contato. |
 | Inbox > Perfil | + Adicionar tag | `handleAddTag` | Cria tags customizadas. |
 | Inbox > Perfil | Ligar | `handleCall` | Inicia chamada (toast informativo). |
 | Inbox > Perfil | Agendar reunião | `handleScheduleMeeting` | Abre mini-calendário para escolha de data. |
+| Inbox > Perfil | Status/Responsável | `handleSaveProfile` | Atualiza status e responsável do atendimento. |
 | Inbox > Perfil | Bloquear contato | `handleBlock` | Solicita confirmação de bloqueio (toast informativo). |
 | Automações (lista) | Nova Automação | `onCreate` | Abre o construtor para uma nova automação. |
 | Automações (lista) | Menu: Editar | `handleMenuAction` | Aciona fluxo de edição (toast informativo). |

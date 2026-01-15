@@ -140,6 +140,12 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
+  const quickReplies = [
+    "Olá! Como posso ajudar?",
+    "Já estamos verificando para você.",
+    "Pode me confirmar seus dados?",
+    "Obrigado pelo contato! 😊",
+  ]
 
   const insertEmoji = (emoji: string) => {
     setMessage((prev) => `${prev}${emoji}`)
@@ -263,6 +269,18 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           >
             <Smile className="h-4 w-4" />
           </Button>
+          <div className="hidden lg:flex items-center gap-2">
+            {quickReplies.map((reply) => (
+              <button
+                key={reply}
+                type="button"
+                className="text-xs px-2 py-1 rounded-full bg-card border border-border/50 hover:bg-secondary"
+                onClick={() => setMessage(reply)}
+              >
+                {reply}
+              </button>
+            ))}
+          </div>
           {showEmojiPicker && (
             <div className="absolute bottom-14 right-16 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
               {emojiList.map((emoji) => (

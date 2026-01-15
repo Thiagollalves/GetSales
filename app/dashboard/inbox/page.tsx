@@ -38,6 +38,8 @@ export default function InboxPage() {
       score: 50,
       tags: [],
       messages: [],
+      status: "novo",
+      assignee: "Atendimento",
       phone: "",
       email: "",
       location: "",
@@ -49,6 +51,24 @@ export default function InboxPage() {
     setShowProfile(true)
     setNewChatCounter((prev) => prev + 1)
   }, [newChatCounter])
+
+  useEffect(() => {
+    const stored = localStorage.getItem("inbox_conversations")
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Conversation[]
+        if (parsed.length > 0) {
+          setConversations(parsed)
+        }
+      } catch (error) {
+        console.warn("Failed to load conversations", error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
+  }, [conversations])
 
   useEffect(() => {
     const handleNewConversation = () => {

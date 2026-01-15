@@ -24,6 +24,8 @@ export interface Conversation {
     score: number
     tags: string[]
     messages: Message[]
+    status: "novo" | "ativo" | "resolvido"
+    assignee?: string
     phone?: string
     email?: string
     location?: string
@@ -56,6 +58,8 @@ export const initialConversations: Conversation[] = [
         unread: true,
         score: 85,
         tags: ["VIP", "Interessado"],
+        status: "ativo",
+        assignee: "Ana Souza",
         phone: "5511999999999",
         email: "contato@email.com",
         location: "São Paulo, SP",
@@ -82,6 +86,8 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 62,
         tags: ["Lead"],
+        status: "ativo",
+        assignee: "Equipe Bot",
         email: "joao@empresa.com",
         location: "Rio de Janeiro, RJ",
         customerSince: "Fev 2024",
@@ -106,6 +112,8 @@ export const initialConversations: Conversation[] = [
         unread: true,
         score: 78,
         tags: ["Cliente", "Suporte"],
+        status: "novo",
+        assignee: "Camila Rocha",
         email: "ana@empresa.com",
         location: "Curitiba, PR",
         customerSince: "Mar 2024",
@@ -121,6 +129,8 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 45,
         tags: ["Prospect"],
+        status: "ativo",
+        assignee: "Time Comercial",
         email: "carlos@empresa.com",
         location: "Belo Horizonte, MG",
         customerSince: "Abr 2024",
@@ -145,6 +155,8 @@ export const initialConversations: Conversation[] = [
         unread: false,
         score: 55,
         tags: ["Lead"],
+        status: "resolvido",
+        assignee: "Equipe Bot",
         email: "fernanda@empresa.com",
         location: "Recife, PE",
         customerSince: "Mai 2024",

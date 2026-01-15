@@ -4,9 +4,10 @@ import type { Conversation } from "@/app/dashboard/inbox/page"
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { Phone, Mail, MapPin, Calendar as CalendarIcon, Tag, TrendingUp, Edit } from "lucide-react"
+import { Phone, Mail, MapPin, Calendar as CalendarIcon, UserCircle2, Tag, TrendingUp, Edit } from "lucide-react"
 import { notifyAction } from "@/lib/button-actions"
 
 interface ContactProfileProps {
@@ -34,6 +35,8 @@ export function ContactProfile({
     email: conversation.email ?? "",
     location: conversation.location ?? "",
     customerSince: conversation.customerSince ?? "",
+    status: conversation.status,
+    assignee: conversation.assignee ?? "",
   })
 
   useEffect(() => {
@@ -43,6 +46,8 @@ export function ContactProfile({
       email: conversation.email ?? "",
       location: conversation.location ?? "",
       customerSince: conversation.customerSince ?? "",
+      status: conversation.status,
+      assignee: conversation.assignee ?? "",
     })
     if (conversation.nextMeeting) {
       const parsedDate = new Date(conversation.nextMeeting.split("/").reverse().join("-"))
@@ -64,6 +69,8 @@ export function ContactProfile({
       email: conversation.email ?? "",
       location: conversation.location ?? "",
       customerSince: conversation.customerSince ?? "",
+      status: conversation.status,
+      assignee: conversation.assignee ?? "",
     })
     setIsEditing(true)
   }
@@ -104,6 +111,8 @@ export function ContactProfile({
       email: draftProfile.email,
       location: draftProfile.location,
       customerSince: draftProfile.customerSince,
+      status: draftProfile.status,
+      assignee: draftProfile.assignee,
     })
     setIsEditing(false)
   }
@@ -166,6 +175,32 @@ export function ContactProfile({
         {isEditing ? (
           <div className="space-y-3 text-sm">
             <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Status do atendimento</label>
+              <Select
+                value={draftProfile.status}
+                onValueChange={(value) =>
+                  setDraftProfile((prev) => ({ ...prev, status: value as Conversation["status"] }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="novo">Novo</SelectItem>
+                  <SelectItem value="ativo">Em atendimento</SelectItem>
+                  <SelectItem value="resolvido">Resolvido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-muted-foreground">Responsável</label>
+              <Input
+                value={draftProfile.assignee}
+                onChange={(event) => setDraftProfile((prev) => ({ ...prev, assignee: event.target.value }))}
+                placeholder="Nome do agente"
+              />
+            </div>
+            <div className="space-y-1">
               <label className="text-xs text-muted-foreground">Nome</label>
               <Input
                 value={draftProfile.name}
@@ -211,6 +246,21 @@ export function ContactProfile({
           </div>
         ) : (
           <div className="space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <UserCircle2 className="h-4 w-4" />
+              <span>
+                Status:{" "}
+                {conversation.status === "novo"
+                  ? "Novo"
+                  : conversation.status === "ativo"
+                    ? "Em atendimento"
+                    : "Resolvido"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <UserCircle2 className="h-4 w-4" />
+              <span>Responsável: {conversation.assignee || "Não atribuído"}</span>
+            </div>
             <div className="flex items-center gap-2 text-muted-foreground">
               <Phone className="h-4 w-4" />
               <span>{conversation.phone || "Sem telefone"}</span>
