@@ -63,6 +63,8 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
       onSendMessage({ text: message })
     }
     setMessage("")
+    setShowEmojiPicker(false)
+    inputRef.current?.focus()
   }
 
   const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
