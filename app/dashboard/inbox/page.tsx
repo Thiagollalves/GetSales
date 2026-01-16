@@ -85,10 +85,14 @@ export default function InboxPage() {
 
   useEffect(() => {
     const shouldCreate = searchParams.get("newConversation") === "1"
-    if (!shouldCreate || hasHandledQueryRef.current) return
+    if (!shouldCreate) {
+      hasHandledQueryRef.current = false
+      return
+    }
+    if (hasHandledQueryRef.current) return
 
-    createConversation()
     hasHandledQueryRef.current = true
+    createConversation()
     const nextParams = new URLSearchParams(searchParams)
     nextParams.delete("newConversation")
     const nextQuery = nextParams.toString()
