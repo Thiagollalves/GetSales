@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WhatsappApiConfig } from "@/components/whatsapp/api-config";
 import { WhatsappQrConnection } from "@/components/whatsapp/qr-connection";
 import { Separator } from "@/components/ui/separator";
+import { WhatsappWebhookConfig } from "@/components/whatsapp/webhook-config";
 
 export default function SettingsPage() {
     return (
@@ -24,8 +25,9 @@ export default function SettingsPage() {
                         <div className="col-span-1 md:col-span-2 lg:col-span-4">
                             <WhatsappQrConnection />
                         </div>
-                        <div className="col-span-1 md:col-span-2 lg:col-span-3">
+                        <div className="col-span-1 md:col-span-2 lg:col-span-3 space-y-4">
                             <WhatsappApiConfig />
+                            <WhatsappWebhookConfig />
                         </div>
                     </div>
                 </TabsContent>
