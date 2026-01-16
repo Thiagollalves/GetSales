@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,9 @@ export default function CampaignsPage() {
     const [templates, setTemplates] = useState<Template[]>(initialTemplates);
     const [newTemplateName, setNewTemplateName] = useState("");
     const [newTemplateBody, setNewTemplateBody] = useState("");
-    const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+    const [showTemplateForm, setShowTemplateForm] = useState(false);
+    const [isSubmittingTemplate, setIsSubmittingTemplate] = useState(false);
+    const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
     // Derived Audience
     const audience = selectedTag === "all"
@@ -60,26 +62,82 @@ export default function CampaignsPage() {
         toast.success("Campanha enviada com sucesso!");
     };
 
-    const handleCreateTemplate = () => {
+    const loadTemplates = useCallback(async () => {
+        const token = localStorage.getItem("wh_access_token");
+        const wabaId = localStorage.getItem("wh_waba_id");
+        if (!token || !wabaId) {
+            setTemplates(initialTemplates);
+            return;
+        }
+
+        setIsLoadingTemplates(true);
+        try {
+            const response = await fetch("/api/whatsapp/templates?refresh=1", {
+                headers: {
+                    "x-wh-token": token,
+                    "x-wh-waba-id": wabaId,
+                },
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Falha ao carregar templates.");
+            }
+            setTemplates(data.templates || []);
+        } catch (error) {
+            console.error("Failed to load templates", error);
+            toast.error("Não foi possível carregar os templates da Meta.");
+        } finally {
+            setIsLoadingTemplates(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadTemplates();
+    }, [loadTemplates]);
+
+    const handleCreateTemplate = async () => {
         if (!newTemplateName || !newTemplateBody) {
             toast.error("Preencha o nome e o corpo do modelo.");
             return;
         }
 
-        const newTemplate: Template = {
-            id: Math.random().toString(),
-            name: newTemplateName.toLowerCase().replace(/\s/g, '_'),
-            category: "MARKETING",
-            language: "pt_BR",
-            status: "APPROVED", // Mock auto-approval
-            components: [{ type: "BODY", text: newTemplateBody }]
-        };
+        const token = localStorage.getItem("wh_access_token");
+        const wabaId = localStorage.getItem("wh_waba_id");
+        if (!token || !wabaId) {
+            toast.error("Configure o Access Token e o WABA ID nas configurações.");
+            return;
+        }
 
-        setTemplates([...templates, newTemplate]);
-        setNewTemplateName("");
-        setNewTemplateBody("");
-        setIsCreatingTemplate(false);
-        toast.success("Modelo criado e enviado para aprovação (Mock).");
+        const normalizedName = newTemplateName.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+        setIsSubmittingTemplate(true);
+        try {
+            const response = await fetch("/api/whatsapp/templates", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: normalizedName,
+                    category: "MARKETING",
+                    language: "pt_BR",
+                    components: [{ type: "BODY", text: newTemplateBody }],
+                    token,
+                    wabaId,
+                }),
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || "Falha ao criar template.");
+            }
+            setTemplates((prev) => [data.template as Template, ...prev]);
+            setNewTemplateName("");
+            setNewTemplateBody("");
+            setShowTemplateForm(false);
+            toast.success("Modelo enviado para aprovação da Meta.");
+        } catch (error) {
+            console.error("Failed to create template", error);
+            toast.error("Não foi possível enviar o template para a Meta.");
+        } finally {
+            setIsSubmittingTemplate(false);
+        }
     };
 
     return (
@@ -147,10 +205,15 @@ export default function CampaignsPage() {
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Modelo</label>
                                     <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
-                                        <SelectTrigger>
+                                        <SelectTrigger disabled={isLoadingTemplates}>
                                             <SelectValue placeholder="Selecione um template..." />
                                         </SelectTrigger>
                                         <SelectContent>
+                                            {isLoadingTemplates && (
+                                                <SelectItem value="loading" disabled>
+                                                    Carregando templates...
+                                                </SelectItem>
+                                            )}
                                             {templates.map(t => (
                                                 <SelectItem key={t.id} value={t.id}>{t.name} ({t.language})</SelectItem>
                                             ))}
@@ -187,13 +250,13 @@ export default function CampaignsPage() {
 
                 <TabsContent value="templates" className="space-y-4">
                     <div className="flex justify-end">
-                        <Button onClick={() => setIsCreatingTemplate(!isCreatingTemplate)}>
+                        <Button onClick={() => setShowTemplateForm((prev) => !prev)} disabled={isSubmittingTemplate}>
                             <Plus className="w-4 h-4 mr-2" />
-                            {isCreatingTemplate ? "Cancelar" : "Novo Modelo"}
+                            {showTemplateForm ? "Cancelar" : "Novo Modelo"}
                         </Button>
                     </div>
 
-                    {isCreatingTemplate && (
+                    {showTemplateForm && (
                         <Card className="animate-in fade-in slide-in-from-top-5">
                             <CardHeader>
                                 <CardTitle>Criar Novo Modelo</CardTitle>
@@ -219,7 +282,9 @@ export default function CampaignsPage() {
                                 </div>
                             </CardContent>
                             <CardFooter>
-                                <Button onClick={handleCreateTemplate}>Salvar e Enviar para Aprovação</Button>
+                                <Button onClick={handleCreateTemplate} disabled={isSubmittingTemplate}>
+                                    {isSubmittingTemplate ? "Enviando..." : "Salvar e Enviar para Aprovação"}
+                                </Button>
                             </CardFooter>
                         </Card>
                     )}

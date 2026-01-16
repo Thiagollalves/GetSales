@@ -8,7 +8,7 @@ Este documento lista os botões do produto, suas funções e o comportamento ass
 | --- | --- | --- | --- |
 | Campanhas | Enviar Campanha Agora | `handleSendCampaign` | Dispara envio da campanha e atualiza o progresso. |
 | Campanhas | Novo Modelo / Cancelar | `setIsCreatingTemplate` | Alterna o formulário de criação de modelo. |
-| Campanhas | Salvar e Enviar para Aprovação | `handleCreateTemplate` | Cria um template mock e confirma via toast. |
+| Campanhas | Salvar e Enviar para Aprovação | `handleCreateTemplate` | Envia o template para a Meta Graph API e armazena o status localmente. |
 | Pipeline | Filtros | `handleFilterClick` | Abre o painel de filtros (toast informativo). |
 | Pipeline | Novo Lead (header) | `handleAddLead` | Cria um lead na primeira etapa disponível. |
 | Pipeline | Opções da etapa | `handleStageOptions` | Abre opções da etapa (toast informativo). |

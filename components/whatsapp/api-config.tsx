@@ -11,20 +11,24 @@ import { Save, Key, Phone } from "lucide-react";
 export function WhatsappApiConfig() {
     const [token, setToken] = useState("");
     const [phoneId, setPhoneId] = useState("");
+    const [wabaId, setWabaId] = useState("");
     const [verifyToken, setVerifyToken] = useState("");
 
     useEffect(() => {
         const storedToken = localStorage.getItem("wh_access_token");
         const storedPhoneId = localStorage.getItem("wh_phone_id");
+        const storedWabaId = localStorage.getItem("wh_waba_id");
         const storedVerify = localStorage.getItem("wh_verify_token");
         if (storedToken) setToken(storedToken);
         if (storedPhoneId) setPhoneId(storedPhoneId);
+        if (storedWabaId) setWabaId(storedWabaId);
         if (storedVerify) setVerifyToken(storedVerify);
     }, []);
 
     const handleSave = () => {
         localStorage.setItem("wh_access_token", token);
         localStorage.setItem("wh_phone_id", phoneId);
+        localStorage.setItem("wh_waba_id", wabaId);
         localStorage.setItem("wh_verify_token", verifyToken || "conecta-crm-demo");
         toast.success("Credenciais da API salvas com sucesso!");
     };
@@ -63,6 +67,16 @@ export function WhatsappApiConfig() {
                         placeholder="EAAG..."
                         value={token}
                         onChange={(e) => setToken(e.target.value)}
+                    />
+                </div>
+
+                <div className="space-y-2">
+                    <Label htmlFor="waba-id">WhatsApp Business Account ID</Label>
+                    <Input
+                        id="waba-id"
+                        placeholder="Ex: 1234567890"
+                        value={wabaId}
+                        onChange={(e) => setWabaId(e.target.value)}
                     />
                 </div>
 
