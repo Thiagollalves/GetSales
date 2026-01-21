@@ -14,6 +14,7 @@ import {
   Check,
   CheckCheck,
   ImageIcon,
+  BookmarkPlus,
   Mic,
   Phone,
   Video,
@@ -46,16 +47,46 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [quickReplies, setQuickReplies] = useState<string[]>([])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recorderChunksRef = useRef<Blob[]>([])
+  const defaultQuickReplies = [
+    "Olá! Como posso ajudar?",
+    "Já estamos verificando para você.",
+    "Pode me confirmar seus dados?",
+    "Obrigado pelo contato! 😊",
+  ]
+  const quickRepliesStorageKey = "inbox_quick_replies"
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [conversation.messages])
+
+  useEffect(() => {
+    const stored = localStorage.getItem(quickRepliesStorageKey)
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as string[]
+        if (parsed.length > 0) {
+          setQuickReplies(parsed)
+          return
+        }
+      } catch {
+        // ignore stored value errors
+      }
+    }
+    setQuickReplies(defaultQuickReplies)
+  }, [])
+
+  useEffect(() => {
+    if (quickReplies.length > 0) {
+      localStorage.setItem(quickRepliesStorageKey, JSON.stringify(quickReplies))
+    }
+  }, [quickReplies])
 
   const handleSend = () => {
     if (!message.trim()) return
@@ -143,12 +174,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
-  const quickReplies = [
-    "Olá! Como posso ajudar?",
-    "Já estamos verificando para você.",
-    "Pode me confirmar seus dados?",
-    "Obrigado pelo contato! 😊",
-  ]
+  const canSaveQuickReply = message.trim().length > 0
 
   const insertEmoji = (emoji: string) => {
     setMessage((prev) => `${prev}${emoji}`)
@@ -159,6 +185,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   const handleQuickReply = (reply: string) => {
     setMessage((prev) => (prev.trim() ? `${prev} ${reply}` : reply))
     inputRef.current?.focus()
+  }
+
+  const handleSaveQuickReply = () => {
+    const trimmed = message.trim()
+    if (!trimmed) return
+    setQuickReplies((prev) => {
+      if (prev.includes(trimmed)) {
+        notifyAction("Atalho já salvo", "Essa mensagem rápida já existe.")
+        return prev
+      }
+      const next = [trimmed, ...prev]
+      notifyAction("Mensagem rápida salva", "Seu atalho foi adicionado à lista.")
+      return next
+    })
   }
 
   return (
@@ -271,6 +311,16 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2"
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
           />
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleSaveQuickReply}
+            disabled={!canSaveQuickReply}
+            aria-label="Salvar mensagem rápida"
+          >
+            <BookmarkPlus className="h-4 w-4" />
+          </Button>
           <Button
             variant="ghost"
             size="icon"
