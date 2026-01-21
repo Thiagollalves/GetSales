@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { Suspense, useCallback, useEffect, useRef, useState } from "react"
 import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
 import { ChatWindow } from "@/components/dashboard/inbox/chat-window"
 import { ContactProfile } from "@/components/dashboard/inbox/contact-profile"
@@ -10,7 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 
 export type { Conversation, Message, Attachment }
 
-export default function InboxPage() {
+function InboxPageContent() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId] = useState<number | null>(1)
   const [showProfile, setShowProfile] = useState(true)
@@ -223,5 +223,13 @@ export default function InboxPage() {
         </div>
       )}
     </div>
+  )
+}
+
+export default function InboxPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[calc(100vh-4rem)]" />}>
+      <InboxPageContent />
+    </Suspense>
   )
 }
