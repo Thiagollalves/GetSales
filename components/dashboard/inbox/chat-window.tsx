@@ -14,6 +14,7 @@ import {
   Check,
   CheckCheck,
   ImageIcon,
+  Zap,
   Mic,
   Phone,
   Video,
@@ -46,12 +47,19 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [showQuickReplies, setShowQuickReplies] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
   const recorderRef = useRef<MediaRecorder | null>(null)
   const recorderChunksRef = useRef<Blob[]>([])
+  const quickReplies = [
+    "Olá! Como posso ajudar?",
+    "Já estamos verificando para você.",
+    "Pode me confirmar seus dados?",
+    "Obrigado pelo contato! 😊",
+  ]
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -95,6 +103,10 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
   const handleEmojiPicker = () => {
     setShowEmojiPicker((prev) => !prev)
+  }
+
+  const handleQuickReplies = () => {
+    setShowQuickReplies((prev) => !prev)
   }
 
   const handleVoiceNote = async () => {
@@ -143,12 +155,6 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
-  const quickReplies = [
-    "Olá! Como posso ajudar?",
-    "Já estamos verificando para você.",
-    "Pode me confirmar seus dados?",
-    "Obrigado pelo contato! 😊",
-  ]
 
   const insertEmoji = (emoji: string) => {
     setMessage((prev) => `${prev}${emoji}`)
@@ -158,6 +164,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
   const handleQuickReply = (reply: string) => {
     setMessage((prev) => (prev.trim() ? `${prev} ${reply}` : reply))
+    setShowQuickReplies(false)
     inputRef.current?.focus()
   }
 
@@ -279,18 +286,15 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
           >
             <Smile className="h-4 w-4" />
           </Button>
-          <div className="hidden lg:flex items-center gap-2">
-            {quickReplies.map((reply) => (
-              <button
-                key={reply}
-                type="button"
-                className="text-xs px-2 py-1 rounded-full bg-card border border-border/50 hover:bg-secondary"
-                onClick={() => handleQuickReply(reply)}
-              >
-                {reply}
-              </button>
-            ))}
-          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+            onClick={handleQuickReplies}
+            aria-label="Abrir mensagens rápidas"
+          >
+            <Zap className="h-4 w-4" />
+          </Button>
           {showEmojiPicker && (
             <div className="absolute bottom-14 right-16 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
               {emojiList.map((emoji) => (
@@ -301,6 +305,20 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
                   onClick={() => insertEmoji(emoji)}
                 >
                   {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+          {showQuickReplies && (
+            <div className="absolute bottom-14 right-6 w-64 rounded-xl border border-border bg-card shadow-lg p-2 space-y-1">
+              {quickReplies.map((reply) => (
+                <button
+                  key={reply}
+                  type="button"
+                  className="w-full text-left text-sm px-3 py-2 rounded-lg hover:bg-secondary"
+                  onClick={() => handleQuickReply(reply)}
+                >
+                  {reply}
                 </button>
               ))}
             </div>
@@ -340,7 +358,7 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
         className={`
           max-w-[70%] rounded-2xl px-4 py-3 shadow-sm
           ${isContact
-            ? "bg-card border border-border/50 rounded-bl-md"
+            ? "bg-emerald-600 text-white rounded-bl-md shadow-md shadow-emerald-500/20"
             : "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
           }
           ${isBot ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-foreground" : ""}

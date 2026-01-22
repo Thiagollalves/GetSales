@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import os from "os";
 import path from "path";
 
 export type MetaTemplate = {
@@ -15,8 +16,10 @@ export type MetaTemplate = {
     }>;
 };
 
-const DATA_DIR = path.join(process.cwd(), ".data");
+const DEFAULT_DATA_DIR = path.join(os.tmpdir(), "getsales-data");
+const DATA_DIR = process.env.META_TEMPLATE_STORE_DIR ?? DEFAULT_DATA_DIR;
 const DATA_PATH = path.join(DATA_DIR, "meta-templates.json");
+let memoryTemplates: MetaTemplate[] | null = null;
 
 async function ensureDataFile() {
     await fs.mkdir(DATA_DIR, { recursive: true });
@@ -28,15 +31,31 @@ async function ensureDataFile() {
 }
 
 export async function readTemplates(): Promise<MetaTemplate[]> {
-    await ensureDataFile();
-    const raw = await fs.readFile(DATA_PATH, "utf-8");
-    const parsed = JSON.parse(raw) as { templates?: MetaTemplate[] };
-    return parsed.templates ?? [];
+    try {
+        await ensureDataFile();
+        const raw = await fs.readFile(DATA_PATH, "utf-8");
+        const parsed = JSON.parse(raw) as { templates?: MetaTemplate[] };
+        return parsed.templates ?? [];
+    } catch {
+        if (memoryTemplates) {
+            return memoryTemplates;
+        }
+        await writeTemplates([]);
+        return memoryTemplates ?? [];
+    }
 }
 
 export async function writeTemplates(templates: MetaTemplate[]) {
-    await ensureDataFile();
-    await fs.writeFile(DATA_PATH, JSON.stringify({ templates }, null, 2));
+    try {
+        await ensureDataFile();
+        const nextContents = JSON.stringify({ templates }, null, 2);
+        const tempPath = `${DATA_PATH}.tmp`;
+        await fs.writeFile(tempPath, nextContents);
+        await fs.rename(tempPath, DATA_PATH);
+        memoryTemplates = null;
+    } catch {
+        memoryTemplates = templates;
+    }
 }
 
 export async function upsertTemplates(nextTemplates: MetaTemplate[]) {
