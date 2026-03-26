@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DndContext,
   closestCorners,
@@ -35,17 +35,21 @@ import {
   Search,
   Filter,
   Sparkles,
+  Pencil,
+  X,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { notifyAction } from "@/lib/button-actions";
 
 // --- Types ---
+type LeadChannel = "whatsapp" | "instagram" | "telegram" | "email";
+
 interface Lead {
   id: string;
   name: string;
   company: string;
   value: number;
-  channel: "whatsapp" | "instagram" | "telegram" | "email";
+  channel: LeadChannel;
   lastContact: string;
   score: number;
   avatar: string;
@@ -58,6 +62,26 @@ interface Stage {
   bgGradient: string;
   leads: Lead[];
 }
+
+interface LeadForm {
+  name: string;
+  company: string;
+  value: string;
+  lastContact: string;
+  score: string;
+  channel: LeadChannel;
+}
+
+const channelOptions: LeadChannel[] = ["whatsapp", "instagram", "telegram", "email"];
+
+const emptyLeadForm: LeadForm = {
+  name: "",
+  company: "",
+  value: "0",
+  lastContact: "",
+  score: "0",
+  channel: "whatsapp",
+};
 
 const initialStages: Stage[] = [
   {
@@ -111,11 +135,18 @@ const initialStages: Stage[] = [
   },
 ];
 
-const channelColors: Record<string, string> = {
+const channelColors: Record<LeadChannel, string> = {
   whatsapp: "bg-green-500",
   instagram: "bg-gradient-to-tr from-purple-500 to-pink-500",
   telegram: "bg-blue-500",
   email: "bg-gray-500",
+};
+
+const channelLabels: Record<LeadChannel, string> = {
+  whatsapp: "WhatsApp",
+  instagram: "Instagram",
+  telegram: "Telegram",
+  email: "E-mail",
 };
 
 const stagePalette = [
@@ -129,7 +160,7 @@ const formatCurrency = (value: number) =>
   new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 0 }).format(value);
 
 // --- Sortable Lead Component ---
-function SortableLead({ lead }: { lead: Lead }) {
+function SortableLead({ lead, onEdit }: { lead: Lead; onEdit: (lead: Lead) => void }) {
   const {
     attributes,
     listeners,
@@ -169,7 +200,17 @@ function SortableLead({ lead }: { lead: Lead }) {
               <h4 className="font-semibold text-sm truncate">{lead.name}</h4>
               <p className="text-xs text-muted-foreground truncate">{lead.company}</p>
             </div>
-            <div className={`w-3 h-3 rounded-full ${channelColors[lead.channel]}`} />
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-muted-foreground hover:text-primary"
+                onClick={() => onEdit(lead)}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </Button>
+              <div className={`w-3 h-3 rounded-full ${channelColors[lead.channel]}`} />
+            </div>
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground mb-3">
@@ -202,12 +243,30 @@ function SortableLead({ lead }: { lead: Lead }) {
 export default function PipelinePage() {
   const [stages, setStages] = useState<Stage[]>(initialStages);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [editingStageId, setEditingStageId] = useState<string | null>(null);
+  const [leadForm, setLeadForm] = useState<LeadForm>(emptyLeadForm);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
     useSensor(KeyboardSensor)
   );
+
+  useEffect(() => {
+    if (editingLead) {
+      setLeadForm({
+        name: editingLead.name,
+        company: editingLead.company,
+        value: editingLead.value.toString(),
+        lastContact: editingLead.lastContact,
+        score: editingLead.score.toString(),
+        channel: editingLead.channel,
+      });
+    } else {
+      setLeadForm(emptyLeadForm);
+    }
+  }, [editingLead]);
 
   const findStage = (id: string) => {
     return stages.find(s => s.id === id || s.leads.some(l => l.id === id));
@@ -264,8 +323,105 @@ export default function PipelinePage() {
     notifyAction("Etapa criada", "Nova etapa adicionada ao pipeline.");
   };
 
-  const handleStageOptions = (title: string) => {
-    notifyAction("Opções da etapa", `Abrindo opções de ${title}.`);
+  const handleEditLead = (lead: Lead, stageId: string) => {
+    setEditingLead(lead);
+    setEditingStageId(stageId);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingLead(null);
+    setEditingStageId(null);
+  };
+
+  const handleSaveLead = () => {
+    if (!editingLead || !editingStageId) return;
+
+    const numericValue = Number(leadForm.value);
+    const numericScore = Number(leadForm.score);
+
+    setStages((prev) =>
+      prev.map((stage) => {
+        if (stage.id !== editingStageId) return stage;
+        return {
+          ...stage,
+          leads: stage.leads.map((lead) =>
+            lead.id === editingLead.id
+              ? {
+                  ...lead,
+                  name: leadForm.name.trim() || lead.name,
+                  company: leadForm.company.trim() || lead.company,
+                  value: Number.isFinite(numericValue) ? numericValue : lead.value,
+                  lastContact: leadForm.lastContact.trim() || lead.lastContact,
+                  score: Number.isFinite(numericScore) ? numericScore : lead.score,
+                  channel: leadForm.channel,
+                }
+              : lead
+          ),
+        };
+      })
+    );
+
+    notifyAction("Lead atualizado", `${leadForm.name || editingLead.name} foi atualizado.`);
+    setEditingLead(null);
+    setEditingStageId(null);
+  };
+
+  const handleRenameStage = (stageId: string) => {
+    const stage = stages.find((s) => s.id === stageId);
+    if (!stage) return;
+    if (typeof window === "undefined") return;
+
+    const nextTitle = window.prompt("Nome da etapa", stage.title);
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
+    if (!trimmed || trimmed === stage.title) return;
+
+    setStages((prev) =>
+      prev.map((s) => (s.id === stageId ? { ...s, title: trimmed } : s))
+    );
+    notifyAction("Etapa renomeada", `${stage.title} agora é ${trimmed}.`);
+  };
+
+  const handleRemoveStage = (stageId: string) => {
+    if (stages.length <= 1) {
+      notifyAction("Pipeline mínimo", "É necessário manter ao menos uma etapa.");
+      return;
+    }
+
+    const stageIndex = stages.findIndex((s) => s.id === stageId);
+    if (stageIndex === -1) return;
+
+    const stageToRemove = stages[stageIndex];
+    const targetIndex = stageIndex > 0 ? stageIndex - 1 : stageIndex + 1;
+    const targetStage = stages[targetIndex];
+    if (!targetStage) return;
+
+    if (typeof window !== "undefined") {
+      const confirmed = window.confirm(
+        `Remover ${stageToRemove.title} e mover ${stageToRemove.leads.length} lead(s) para ${targetStage.title}?`
+      );
+      if (!confirmed) return;
+    }
+
+    setStages((prev) =>
+      prev
+        .map((stage) =>
+          stage.id === targetStage.id
+            ? { ...stage, leads: [...stage.leads, ...stageToRemove.leads] }
+            : stage
+        )
+        .filter((stage) => stage.id !== stageId)
+    );
+
+    notifyAction(
+      "Etapa removida",
+      `${stageToRemove.title} foi removida e seus leads foram enviados para ${targetStage.title}.`
+    );
+
+    if (editingStageId === stageId) {
+      setEditingLead(null);
+      setEditingStageId(null);
+    }
   };
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -361,6 +517,7 @@ export default function PipelinePage() {
 
   const totalLeads = stages.reduce((sum, s) => sum + s.leads.length, 0);
   const totalValue = stages.reduce((sum, s) => sum + s.leads.reduce((val, l) => val + l.value, 0), 0);
+  const editingStage = editingStageId ? stages.find((stage) => stage.id === editingStageId) : undefined;
 
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
@@ -390,6 +547,110 @@ export default function PipelinePage() {
           </Button>
         </div>
       </div>
+
+      {editingLead && (
+        <Card className="mx-4 mt-4 border border-border/50 bg-card/60 shadow-sm">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Editando lead
+              </p>
+              <h3 className="text-lg font-semibold">{editingLead.name}</h3>
+              <p className="text-sm text-muted-foreground">
+                Etapa: {editingStage?.title ?? "—"}
+              </p>
+            </div>
+            <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Nome</p>
+              <Input
+                value={leadForm.name}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, name: event.target.value }))
+                }
+                placeholder="Nome completo"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Empresa</p>
+              <Input
+                value={leadForm.company}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, company: event.target.value }))
+                }
+                placeholder="Empresa"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Canal</p>
+              <select
+                value={leadForm.channel}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, channel: event.target.value as LeadChannel }))
+                }
+                className="w-full rounded-md border border-border/60 bg-card/70 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {channelOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {channelLabels[option]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Valor (BRL)</p>
+              <Input
+                type="number"
+                min={0}
+                step={1000}
+                value={leadForm.value}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, value: event.target.value }))
+                }
+                placeholder="Ex: 15000"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Pontuação</p>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={leadForm.score}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, score: event.target.value }))
+                }
+                placeholder="Probabilidade (%)"
+              />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Último contato</p>
+              <Input
+                value={leadForm.lastContact}
+                onChange={(event) =>
+                  setLeadForm((prev) => ({ ...prev, lastContact: event.target.value }))
+                }
+                placeholder="Hoje, Ontem etc."
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button onClick={handleSaveLead}>Salvar alterações</Button>
+            <Button variant="outline" onClick={handleCancelEdit}>
+              Cancelar
+            </Button>
+          </div>
+        </Card>
+      )}
 
       <DndContext
         sensors={sensors}
@@ -423,7 +684,12 @@ export default function PipelinePage() {
                       <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem onSelect={() => handleStageOptions(stage.title)}>Opções</DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleRenameStage(stage.id)}>
+                        Renomear etapa
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onSelect={() => handleRemoveStage(stage.id)}>
+                        Excluir etapa
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
@@ -441,7 +707,11 @@ export default function PipelinePage() {
                     strategy={verticalListSortingStrategy}
                   >
                     {stage.leads.map(lead => (
-                      <SortableLead key={lead.id} lead={lead} />
+                      <SortableLead
+                        key={lead.id}
+                        lead={lead}
+                        onEdit={() => handleEditLead(lead, stage.id)}
+                      />
                     ))}
                   </SortableContext>
                   {/* Button New Lead */}

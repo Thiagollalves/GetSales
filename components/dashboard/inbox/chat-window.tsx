@@ -219,98 +219,104 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
       {/* Input Area */}
       <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="relative flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
-          <input
-            ref={fileInputRef}
-            type="file"
-            className="hidden"
-            onChange={(event) => handleFileChange(event, "file")}
-          />
-          <input
-            ref={mediaInputRef}
-            type="file"
-            accept="image/*,video/*"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (!file) return
-              const attachmentType = file.type.startsWith("video") ? "video" : "image"
-              handleFileChange(event, attachmentType)
-            }}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-            onClick={handleAttachFile}
-          >
-            <Paperclip className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-            onClick={handleAttachImage}
-          >
-            <ImageIcon className="h-4 w-4" />
-          </Button>
-          <Input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            placeholder="Digite sua mensagem..."
-            className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2"
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          />
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-            onClick={handleEmojiPicker}
-          >
-            <Smile className="h-4 w-4" />
-          </Button>
-          <div className="hidden lg:flex items-center gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap gap-2">
             {quickReplies.map((reply) => (
               <button
                 key={reply}
                 type="button"
-                className="text-xs px-2 py-1 rounded-full bg-card border border-border/50 hover:bg-secondary"
+                className="text-xs px-3 py-2 rounded-full bg-card border border-border/50 hover:bg-secondary shadow-sm"
                 onClick={() => setMessage(reply)}
               >
                 {reply}
               </button>
             ))}
           </div>
-          {showEmojiPicker && (
-            <div className="absolute bottom-14 right-16 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
-              {emojiList.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="h-9 w-9 rounded-lg hover:bg-secondary text-lg"
-                  onClick={() => insertEmoji(emoji)}
-                >
-                  {emoji}
-                </button>
-              ))}
+
+          <div className="relative flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
+            <input
+              ref={fileInputRef}
+              type="file"
+              className="hidden"
+              onChange={(event) => handleFileChange(event, "file")}
+            />
+            <input
+              ref={mediaInputRef}
+              type="file"
+              accept="image/*,video/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0]
+                if (!file) return
+                const attachmentType = file.type.startsWith("video") ? "video" : "image"
+                handleFileChange(event, attachmentType)
+              }}
+            />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+              onClick={handleAttachFile}
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+              onClick={handleAttachImage}
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            <div className="flex-1 flex items-center gap-2 min-w-0">
+              <Input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                placeholder="Digite sua mensagem..."
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2 text-sm"
+                onKeyDown={(e) => e.key === "Enter" && handleSend()}
+                aria-label="Mensagem"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+                onClick={handleEmojiPicker}
+              >
+                <Smile className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-            onClick={handleVoiceNote}
-          >
-            <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
-          </Button>
-          <Button
-            size="icon"
-            onClick={handleSend}
-            disabled={!message.trim()}
-            className="shrink-0 h-9 w-9 shadow-lg shadow-primary/20"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
+            {showEmojiPicker && (
+              <div className="absolute bottom-14 right-4 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
+                {emojiList.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    className="h-9 w-9 rounded-lg hover:bg-secondary text-lg"
+                    onClick={() => insertEmoji(emoji)}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
+              onClick={handleVoiceNote}
+            >
+              <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
+            </Button>
+            <Button
+              size="icon"
+              onClick={handleSend}
+              disabled={!message.trim()}
+              className="shrink-0 h-9 w-9 shadow-lg shadow-primary/20"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>
