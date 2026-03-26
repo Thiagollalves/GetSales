@@ -1,5 +1,6 @@
 "use client"
 
+import { useMemo, useState } from "react"
 import type { Conversation } from "@/app/dashboard/inbox/page"
 import { Input } from "@/components/ui/input"
 import { Search, Filter } from "lucide-react"
@@ -21,6 +22,17 @@ interface ConversationListProps {
 }
 
 export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
+  const [filter, setFilter] = useState("")
+
+  const normalized = filter.trim().toLowerCase()
+  const filteredConversations = useMemo(() => {
+    if (!normalized) return conversations
+    return conversations.filter((conv) => {
+      const haystack = `${conv.name} ${conv.lastMessage}`.toLowerCase()
+      return haystack.includes(normalized)
+    })
+  }, [conversations, normalized])
+
   const handleFilter = () => {
     notifyAction("Filtros da inbox", "Abra filtros para segmentar conversas.")
   }
@@ -37,13 +49,18 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Buscar conversas..." className="pl-9 h-9 text-sm" />
+          <Input
+            placeholder="Buscar conversas..."
+            className="pl-9 h-9 text-sm"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          />
         </div>
       </div>
 
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
-        {conversations.map((conv) => (
+        {filteredConversations.map((conv) => (
           <button
             key={conv.id}
             onClick={() => onSelect(conv)}
@@ -83,6 +100,9 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
             {conv.unread && <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
           </button>
         ))}
+        {filteredConversations.length === 0 && (
+          <p className="p-4 text-sm text-muted-foreground">Nenhuma conversa encontrada.</p>
+        )}
       </div>
     </div>
   )
