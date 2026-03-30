@@ -35,6 +35,7 @@ import {
   Filter,
   Sparkles,
   Pencil,
+  MoreHorizontal,
   X,
 } from "lucide-react"
 import {
