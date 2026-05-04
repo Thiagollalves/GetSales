@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
+import { META_WEBHOOK_SIGNATURE_HEADER, verifyMetaWebhookSignature } from "@/lib/meta-webhook";
 
-const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN;
+const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN?.trim();
+const META_APP_SECRET = process.env.META_APP_SECRET?.trim();
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("hub.mode");
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
+
+  if (!META_VERIFY_TOKEN) {
+    return NextResponse.json(
+      { error: "META_VERIFY_TOKEN is not configured" },
+      { status: 500 },
+    );
+  }
 
   if (mode === "subscribe" && token && challenge && token === META_VERIFY_TOKEN) {
     return new NextResponse(challenge, { status: 200 });
@@ -18,8 +27,28 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const payload = await request.json();
-    const entries = Array.isArray(payload?.entry) ? payload.entry : [];
+    const rawBody = await request.text();
+    const signature = request.headers.get(META_WEBHOOK_SIGNATURE_HEADER);
+
+    if (!META_APP_SECRET) {
+      return NextResponse.json(
+        { error: "META_APP_SECRET is not configured" },
+        { status: 500 },
+      );
+    }
+
+    if (!verifyMetaWebhookSignature(rawBody, signature, META_APP_SECRET)) {
+      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+    }
+
+    let payload: unknown;
+    try {
+      payload = rawBody ? JSON.parse(rawBody) : null;
+    } catch {
+      return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    const entries = Array.isArray((payload as any)?.entry) ? ((payload as any).entry as any[]) : [];
 
     const messages = entries.flatMap((entry: any) =>
       Array.isArray(entry?.changes)

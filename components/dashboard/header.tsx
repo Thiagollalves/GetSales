@@ -2,12 +2,17 @@
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Bell, Search, Plus } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { Bell, LogOut, Search, Plus } from "lucide-react"
+import { usePathname, useRouter } from "next/navigation"
 import { notifyAction } from "@/lib/button-actions"
 
 export function DashboardHeader() {
+  const pathname = usePathname()
   const router = useRouter()
+
+  if (pathname.startsWith("/dashboard/inbox")) {
+    return null
+  }
 
   const handleNotifications = () => {
     notifyAction("Notificações", "Abrindo central de notificações.");
@@ -16,6 +21,15 @@ export function DashboardHeader() {
   const handleNewConversation = () => {
     router.push("/dashboard/inbox")
     window.dispatchEvent(new CustomEvent("dashboard:new-conversation"))
+  }
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" })
+    } finally {
+      router.replace("/login")
+      router.refresh()
+    }
   }
 
   return (
@@ -36,6 +50,10 @@ export function DashboardHeader() {
         <Button size="sm" onClick={handleNewConversation}>
           <Plus className="h-4 w-4 mr-1" />
           Nova conversa
+        </Button>
+        <Button variant="outline" size="sm" className="bg-transparent" onClick={handleLogout}>
+          <LogOut className="h-4 w-4 mr-1" />
+          Sair
         </Button>
       </div>
     </header>

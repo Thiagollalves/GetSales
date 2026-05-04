@@ -1,41 +1,37 @@
-"use client";
+"use client"
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ClipboardCopy, Link2 } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect, useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ClipboardCopy, Link2 } from "lucide-react"
+import { toast } from "sonner"
 
 export function WhatsappWebhookConfig() {
-  const [origin, setOrigin] = useState("");
-  const [verifyToken, setVerifyToken] = useState("");
+  const [origin, setOrigin] = useState("")
 
   useEffect(() => {
-    setOrigin(window.location.origin);
-    setVerifyToken(localStorage.getItem("wh_verify_token") ?? "conecta-crm-demo");
-  }, []);
+    setOrigin(window.location.origin)
+  }, [])
 
-  const webhookUrl = origin ? `${origin}/api/whatsapp/webhook` : "";
+  const webhookUrl = origin ? `${origin}/api/whatsapp/webhook` : ""
 
   const handleCopy = async () => {
-    if (!webhookUrl) return;
-    await navigator.clipboard.writeText(webhookUrl);
-    toast.success("Webhook copiado!");
-  };
+    if (!webhookUrl) return
+    await navigator.clipboard.writeText(webhookUrl)
+    toast.success("Webhook copiado!")
+  }
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Link2 className="h-5 w-5" />
-          Webhook Oficial (Meta)
+          Webhook oficial
         </CardTitle>
-        <CardDescription>
-          Use este endpoint para receber mensagens da Cloud API e acionar automações.
-        </CardDescription>
+        <CardDescription>Use este endpoint para receber mensagens da Cloud API e acionar automações.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
@@ -50,9 +46,9 @@ export function WhatsappWebhookConfig() {
 
         <div className="space-y-2">
           <Label>Verify Token</Label>
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{verifyToken}</Badge>
-            <span className="text-xs text-muted-foreground">Configure em META_VERIFY_TOKEN.</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">META_VERIFY_TOKEN</Badge>
+            <span className="text-xs text-muted-foreground">Defina no servidor e mantenha igual ao token da Meta.</span>
           </div>
         </div>
 
@@ -60,11 +56,12 @@ export function WhatsappWebhookConfig() {
           <p className="font-medium text-foreground">Variáveis recomendadas</p>
           <ul className="mt-2 list-disc space-y-1 pl-4">
             <li>META_WHATSAPP_TOKEN, META_PHONE_NUMBER_ID, META_VERIFY_TOKEN</li>
+            <li>META_APP_SECRET para validar a assinatura `X-Hub-Signature-256`</li>
             <li>N8N_WEBHOOK_URL (para automações)</li>
             <li>SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY</li>
           </ul>
         </div>
       </CardContent>
     </Card>
-  );
+  )
 }

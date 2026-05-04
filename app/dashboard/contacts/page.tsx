@@ -215,14 +215,16 @@ const parseContactsFromCsv = (csv: string, nextId: () => number): Conversation[]
       avatar: generateAvatarInitials(name),
       channel: getChannelValue(channelCell),
       lastMessage:
-        (columns.message !== undefined && cells[columns.message]?.trim()) ??
-        "Importado via planilha",
+        columns.message !== undefined && cells[columns.message]?.trim()
+          ? cells[columns.message].trim()
+          : "Importado via planilha",
       time:
-        (columns.time !== undefined && cells[columns.time]?.trim()) ??
-        new Date().toLocaleTimeString("pt-BR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
+        columns.time !== undefined && cells[columns.time]?.trim()
+          ? cells[columns.time].trim()
+          : new Date().toLocaleTimeString("pt-BR", {
+              hour: "2-digit",
+              minute: "2-digit",
+            }),
       score: 50,
       tags: parseTagsFromCsv(columns.tags !== undefined ? cells[columns.tags] : ""),
       status: statusValue,

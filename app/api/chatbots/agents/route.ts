@@ -1,13 +1,22 @@
 import { NextResponse } from "next/server";
 import { AgentStatus, createAgent, listAgents } from "@/lib/chatbots";
+import { isAdminRequestAuthorized } from "@/lib/admin-auth";
 
 const allowedStatuses: AgentStatus[] = ["Ativo", "Em teste", "Pausado"];
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   return NextResponse.json(listAgents());
 }
 
 export async function POST(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Requisição inválida" }, { status: 400 });
