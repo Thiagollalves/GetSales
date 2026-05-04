@@ -108,7 +108,7 @@ const quickActions = [
 
 export default function DashboardPage() {
   return (
-    <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8 lg:py-8">
       {/* Header */}
       <div className="animate-fade-in transition-all duration-500">
         <div className="flex items-center gap-2 mb-1">
@@ -120,14 +120,14 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
             <Card
               key={stat.label}
               className={`
-                p-5 border border-border/50 bg-card/50 backdrop-blur-sm
+                p-4 border border-border/50 bg-card/50 backdrop-blur-sm sm:p-5
                 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-border
                 animate-fade-in
               `}
@@ -138,10 +138,8 @@ export default function DashboardPage() {
                   <p className="text-sm text-muted-foreground font-medium">{stat.label}</p>
                   <p className="text-3xl font-bold mt-2 tracking-tight">{stat.value}</p>
                 </div>
-                <div
-                  className={`w-12 h-12 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}
-                >
-                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                <div className={`flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br ${stat.color} sm:h-12 sm:w-12`}>
+                  <Icon className={`h-4 w-4 ${stat.iconColor} sm:h-5 sm:w-5`} />
                 </div>
               </div>
               <div className="flex items-center gap-1.5 mt-4 pt-4 border-t border-border/50">
@@ -158,11 +156,11 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid lg:grid-cols-5 gap-6">
+      <div className="grid gap-6 lg:grid-cols-5">
         {/* Recent Conversations */}
         <Card
           className={`
-            lg:col-span-3 p-6 border border-border/50 bg-card/50 backdrop-blur-sm
+            lg:col-span-3 p-4 border border-border/50 bg-card/50 backdrop-blur-sm sm:p-6
             transition-all duration-500 delay-200 animate-fade-in
           `}
         >
@@ -225,7 +223,7 @@ export default function DashboardPage() {
         {/* Quick Actions */}
         <Card
           className={`
-            lg:col-span-2 p-6 border border-border/50 bg-card/50 backdrop-blur-sm
+            lg:col-span-2 p-4 border border-border/50 bg-card/50 backdrop-blur-sm sm:p-6
             transition-all duration-500 delay-300 animate-fade-in
           `}
         >
@@ -233,7 +231,7 @@ export default function DashboardPage() {
             <h2 className="font-semibold text-lg">Ações rápidas</h2>
             <p className="text-sm text-muted-foreground">Acesse as principais funções</p>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-2">
             {quickActions.map((action) => {
               const Icon = action.icon
               return (
@@ -241,16 +239,16 @@ export default function DashboardPage() {
                   key={action.href}
                   href={action.href}
                   className={`
-                    group p-5 rounded-xl border border-border/50 
+                    group rounded-xl border border-border/50 p-4
                     bg-gradient-to-br ${action.color}
                     transition-all duration-200 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 hover:scale-[1.02]
                     flex flex-col items-center justify-center text-center gap-3
                   `}
                 >
-                  <div className="w-12 h-12 rounded-xl bg-card flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-                    <Icon className="h-5 w-5 text-primary" />
+                  <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-card shadow-sm transition-shadow group-hover:shadow-md sm:h-12 sm:w-12">
+                    <Icon className="h-4 w-4 text-primary sm:h-5 sm:w-5" />
                   </div>
-                  <span className="text-sm font-medium">{action.label}</span>
+                  <span className="text-xs font-medium sm:text-sm">{action.label}</span>
                 </Link>
               )
             })}

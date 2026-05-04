@@ -25,7 +25,7 @@ Para teste local, você pode usar:
 
 ```bash
 ADMIN_ACCESS_USERNAME="admin"
-ADMIN_ACCESS_TOKEN="getsales-dev-access"
+ADMIN_ACCESS_TOKEN="123456"
 ```
 
 ### Webhook
