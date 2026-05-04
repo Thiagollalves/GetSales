@@ -1,88 +1,58 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Save, Key, Phone } from "lucide-react";
+import Link from "next/link"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Key, Server, ShieldCheck } from "lucide-react"
 
 export function WhatsappApiConfig() {
-    const [token, setToken] = useState("");
-    const [phoneId, setPhoneId] = useState("");
-    const [verifyToken, setVerifyToken] = useState("");
+  return (
+    <Card className="w-full border-border/60 bg-card/90">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Server className="h-5 w-5" />
+          Credenciais no servidor
+        </CardTitle>
+        <CardDescription>
+          As credenciais da Meta não ficam mais salvas no navegador. Elas são usadas apenas pelo backend.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4 text-sm">
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <ShieldCheck className="mb-3 h-5 w-5 text-primary" />
+            <p className="font-semibold">Protegido</p>
+            <p className="mt-1 text-muted-foreground">Nada é gravado em localStorage.</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <Key className="mb-3 h-5 w-5 text-primary" />
+            <p className="font-semibold">Env vars</p>
+            <p className="mt-1 text-muted-foreground">META_WHATSAPP_TOKEN e META_PHONE_NUMBER_ID.</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-muted/30 p-4">
+            <Server className="mb-3 h-5 w-5 text-primary" />
+            <p className="font-semibold">Sessão</p>
+            <p className="mt-1 text-muted-foreground">O envio exige login administrativo.</p>
+          </div>
+        </div>
 
-    useEffect(() => {
-        const storedToken = localStorage.getItem("wh_access_token");
-        const storedPhoneId = localStorage.getItem("wh_phone_id");
-        const storedVerify = localStorage.getItem("wh_verify_token");
-        if (storedToken) setToken(storedToken);
-        if (storedPhoneId) setPhoneId(storedPhoneId);
-        if (storedVerify) setVerifyToken(storedVerify);
-    }, []);
-
-    const handleSave = () => {
-        localStorage.setItem("wh_access_token", token);
-        localStorage.setItem("wh_phone_id", phoneId);
-        localStorage.setItem("wh_verify_token", verifyToken || "conecta-crm-demo");
-        toast.success("Credenciais da API salvas com sucesso!");
-    };
-
-    return (
-        <Card className="w-full">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Key className="w-5 h-5" />
-                    API Oficial do WhatsApp (Cloud API)
-                </CardTitle>
-                <CardDescription>
-                    Configure suas credenciais do Meta for Developers para enviar mensagens. Em produção,
-                    mantenha os tokens em variáveis de ambiente.
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="phone-id">Phone Number ID</Label>
-                    <div className="relative">
-                        <Phone className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            id="phone-id"
-                            placeholder="Ex: 100609346..."
-                            value={phoneId}
-                            onChange={(e) => setPhoneId(e.target.value)}
-                            className="pl-9"
-                        />
-                    </div>
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="token">Access Token (Permanent or Temporary)</Label>
-                    <Input
-                        id="token"
-                        type="password"
-                        placeholder="EAAG..."
-                        value={token}
-                        onChange={(e) => setToken(e.target.value)}
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="verify">Webhook Verify Token</Label>
-                    <Input
-                        id="verify"
-                        placeholder="conecta-crm-demo"
-                        value={verifyToken}
-                        onChange={(e) => setVerifyToken(e.target.value)}
-                    />
-                </div>
-            </CardContent>
-            <CardFooter>
-                <Button onClick={handleSave} className="w-full">
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Configurações
-                </Button>
-            </CardFooter>
-        </Card>
-    );
+        <div className="rounded-xl border border-dashed border-border/70 bg-background/60 p-4">
+          <p className="font-medium">Fluxo novo</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4 text-muted-foreground">
+            <li>Configure as credenciais Meta apenas no servidor.</li>
+            <li>
+              Entre em <code className="rounded bg-muted px-1 py-0.5 text-xs">/login</code> para abrir o dashboard.
+            </li>
+            <li>
+              O endpoint <code className="rounded bg-muted px-1 py-0.5 text-xs">/api/whatsapp/send</code> usa os
+              segredos do ambiente.
+            </li>
+          </ul>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <Button asChild variant="outline" className="w-full">
+          <Link href="/login">Ir para o login</Link>
+        </Button>
+      </CardFooter>
+    </Card>
+  )
 }

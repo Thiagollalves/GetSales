@@ -1,24 +1,33 @@
 "use client"
 
-import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
+import type { Attachment, Conversation, Message } from "@/lib/mock-data"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
-  Send,
-  Paperclip,
-  Smile,
-  User,
-  MoreVertical,
   Bot,
+  ChevronDown,
   Check,
   CheckCheck,
   ImageIcon,
   Mic,
-  Phone,
-  Video,
+  MapPin,
+  Paperclip,
+  PanelRightOpen,
+  Search,
+  Send,
+  Smile,
+  Zap,
+  User,
 } from "lucide-react"
 import { notifyAction } from "@/lib/button-actions"
+import {
+  getConversationPriority,
+  getConversationStatusLabel,
+  getPriorityLabel,
+  getPriorityTone,
+} from "@/lib/inbox"
 
 const channelLabels: Record<string, string> = {
   whatsapp: "WhatsApp",
@@ -37,12 +46,30 @@ const channelColors: Record<string, string> = {
 }
 
 interface ChatWindowProps {
-  conversation: Conversation
-  onToggleProfile: () => void
+  conversation: Conversation | null
+  onToggleInspector: () => void
   onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
+  onCloseConversation?: () => void
+  onReturnConversation?: () => void
+  onTransferConversation?: () => void
+  onCreateConversation?: () => void
+  onSearchConversation?: () => void
+  onOpenShortcuts?: () => void
+  isInspectorOpen: boolean
 }
 
-export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: ChatWindowProps) {
+export function ChatWindow({
+  conversation,
+  onToggleInspector,
+  onSendMessage,
+  onCloseConversation,
+  onReturnConversation,
+  onTransferConversation,
+  onCreateConversation,
+  onSearchConversation,
+  onOpenShortcuts,
+  isInspectorOpen,
+}: ChatWindowProps) {
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
@@ -54,32 +81,26 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [conversation.messages])
+  }, [conversation?.messages])
+
+  useEffect(() => {
+    setMessage("")
+    setShowEmojiPicker(false)
+    setIsRecording(false)
+  }, [conversation?.id])
 
   const handleSend = () => {
     if (!message.trim()) return
-    if (onSendMessage) {
+    if (onSendMessage && conversation) {
       onSendMessage({ text: message })
     }
     setMessage("")
   }
 
   const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
-    if (onSendMessage) {
+    if (onSendMessage && conversation) {
       onSendMessage({ text: fallbackText, attachment })
     }
-  }
-
-  const handleStartCall = () => {
-    notifyAction("Chamada de voz", `Iniciando chamada com ${conversation.name}.`)
-  }
-
-  const handleStartVideo = () => {
-    notifyAction("Chamada de vídeo", `Iniciando vídeo com ${conversation.name}.`)
-  }
-
-  const handleMoreOptions = () => {
-    notifyAction("Mais opções", "Abrindo opções adicionais da conversa.")
   }
 
   const handleAttachFile = () => {
@@ -91,7 +112,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const handleEmojiPicker = () => {
-    setShowEmojiPicker((prev) => !prev)
+    setShowEmojiPicker((previous) => !previous)
   }
 
   const handleVoiceNote = async () => {
@@ -126,7 +147,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
       }
       recorder.start()
       setIsRecording(true)
-    } catch (error) {
+    } catch {
       notifyAction("Permissão negada", "Não foi possível acessar o microfone.")
     }
   }
@@ -140,190 +161,229 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   }
 
   const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
-  const quickReplies = [
-    "Olá! Como posso ajudar?",
-    "Já estamos verificando para você.",
-    "Pode me confirmar seus dados?",
-    "Obrigado pelo contato! 😊",
-  ]
-
   const insertEmoji = (emoji: string) => {
-    setMessage((prev) => `${prev}${emoji}`)
+    setMessage((previous) => `${previous}${emoji}`)
     setShowEmojiPicker(false)
   }
 
-  return (
-    <div className="flex-1 flex flex-col bg-background">
-      {/* Chat Header */}
-      <div className="h-16 border-b border-border px-4 flex items-center justify-between bg-card/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-chart-2/20 flex items-center justify-center text-sm font-semibold text-primary">
-              {conversation.avatar}
-            </div>
-            <div
-              className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ${channelColors[conversation.channel]} border-2 border-card`}
-            />
-          </div>
-          <div>
-            <h3 className="font-semibold text-sm">{conversation.name}</h3>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-              <span className="text-xs text-muted-foreground">{channelLabels[conversation.channel]} • Online</span>
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleStartCall}
-          >
-            <Phone className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleStartVideo}
-          >
-            <Video className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={onToggleProfile}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <User className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={handleMoreOptions}
-          >
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/20">
-        {conversation.messages.map((msg, index) => (
-          <MessageBubble key={msg.id} message={msg} isFirst={index === 0} />
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Input Area */}
-      <div className="p-4 border-t border-border bg-card/50 backdrop-blur-sm">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap gap-2">
-            {quickReplies.map((reply) => (
-              <button
-                key={reply}
-                type="button"
-                className="text-xs px-3 py-2 rounded-full bg-card border border-border/50 hover:bg-secondary shadow-sm"
-                onClick={() => setMessage(reply)}
-              >
-                {reply}
-              </button>
-            ))}
-          </div>
-
-          <div className="relative flex items-center gap-2 p-2 rounded-xl bg-secondary/50 border border-border/50">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              onChange={(event) => handleFileChange(event, "file")}
-            />
-            <input
-              ref={mediaInputRef}
-              type="file"
-              accept="image/*,video/*"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0]
-                if (!file) return
-                const attachmentType = file.type.startsWith("video") ? "video" : "image"
-                handleFileChange(event, attachmentType)
-              }}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-              onClick={handleAttachFile}
-            >
-              <Paperclip className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-              onClick={handleAttachImage}
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-            <div className="flex-1 flex items-center gap-2 min-w-0">
-              <Input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
-                className="flex-1 border-0 bg-transparent focus-visible:ring-0 px-2 text-sm"
-                onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                aria-label="Mensagem"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-                onClick={handleEmojiPicker}
-              >
-                <Smile className="h-4 w-4" />
+  if (!conversation) {
+    return (
+      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">
+        <div className="flex flex-1 items-center justify-center px-6 text-center">
+          <div className="max-w-md space-y-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+              Workspace da conversa
+            </p>
+            <h2 className="text-2xl font-semibold text-foreground">Selecione uma conversa para atender</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              A fila da esquerda mostra os atendimentos disponíveis. Quando você escolher um contato, a conversa,
+              as notas internas e o contexto aparecem aqui.
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {onCreateConversation ? (
+                <Button className="rounded-full" onClick={onCreateConversation}>
+                  Nova conversa
+                </Button>
+              ) : null}
+              <Button variant="outline" className="rounded-full bg-transparent" onClick={onSearchConversation}>
+                <Search className="mr-2 h-4 w-4" />
+                Buscar
               </Button>
             </div>
-            {showEmojiPicker && (
-              <div className="absolute bottom-14 right-4 w-56 rounded-xl border border-border bg-card shadow-lg p-2 grid grid-cols-6 gap-2">
-                {emojiList.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    className="h-9 w-9 rounded-lg hover:bg-secondary text-lg"
-                    onClick={() => insertEmoji(emoji)}
-                  >
-                    {emoji}
-                  </button>
-                ))}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  const priority = getConversationPriority(conversation)
+
+  return (
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">
+      <header className="border-b border-border/60 bg-background/70 px-5 py-4 backdrop-blur">
+        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="relative shrink-0 pt-0.5">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-base font-semibold text-foreground">
+                {conversation.avatar}
               </div>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
-              onClick={handleVoiceNote}
-            >
-              <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
+              <div
+                className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full ${channelColors[conversation.channel]} border-2 border-background`}
+              />
+            </div>
+
+            <div className="min-w-0 space-y-2">
+              <div className="space-y-1">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                  Conversa ativa
+                </p>
+                <h3 className="truncate text-xl font-semibold text-foreground">{conversation.name}</h3>
+                <p className="truncate text-sm text-muted-foreground">
+                  {conversation.assignee ?? "Sem responsável"} • {channelLabels[conversation.channel]} • Cliente desde{" "}
+                  {conversation.customerSince ?? "agora"}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                  {getConversationStatusLabel(conversation)}
+                </Badge>
+                <Badge variant={getPriorityTone(priority)} className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                  {getPriorityLabel(priority)}
+                </Badge>
+                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                  Score {conversation.score}
+                </Badge>
+                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                  {channelLabels[conversation.channel]}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onSearchConversation}>
+              <Search className="h-4 w-4" />
             </Button>
-            <Button
-              size="icon"
-              onClick={handleSend}
-              disabled={!message.trim()}
-              className="shrink-0 h-9 w-9 shadow-lg shadow-primary/20"
-            >
-              <Send className="h-4 w-4" />
+            <Button variant="outline" size="sm" className="rounded-full bg-transparent" onClick={onCloseConversation}>
+              Fechar
+            </Button>
+            <Button variant="outline" size="sm" className="rounded-full bg-transparent" onClick={onReturnConversation}>
+              Retornar
+            </Button>
+            <Button size="sm" className="rounded-full shadow-sm shadow-primary/20" onClick={onTransferConversation}>
+              Transferir
+            </Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onToggleInspector}>
+              <PanelRightOpen className={`h-4 w-4 transition-transform ${isInspectorOpen ? "rotate-180" : ""}`} />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onOpenShortcuts}>
+              <Zap className="h-4 w-4" />
             </Button>
           </div>
         </div>
+      </header>
+
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-5 py-6">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+          {conversation.messages.map((message, index) => (
+            <MessageBubble
+              key={message.id}
+              message={message}
+              isFirst={index === 0}
+              contactName={conversation.name}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
-    </div>
+
+      <div className="border-t border-border/60 bg-background/85 px-5 py-4 backdrop-blur">
+        <div className="space-y-4">
+          <section className="rounded-[24px] border border-border/60 bg-background/80 p-4 shadow-sm">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleAttachFile}>
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleAttachImage}>
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleEmojiPicker}>
+                  <Smile className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={() => notifyAction("Localização", "Atalho de localização em breve.")}
+                  title="Localização"
+                >
+                  <MapPin className="h-4 w-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleVoiceNote}>
+                  <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
+                </Button>
+                <div className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+                  <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
+                  O time vê tudo em tempo real
+                </div>
+              </div>
+
+              <div className="relative flex items-center gap-3 rounded-[24px] border border-border/70 bg-background/90 px-3 py-2 shadow-sm">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={(event) => handleFileChange(event, "file")}
+                />
+                <input
+                  ref={mediaInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    if (!file) return
+                    const attachmentType = file.type.startsWith("video") ? "video" : "image"
+                    handleFileChange(event, attachmentType)
+                  }}
+                />
+
+                <Input
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                  placeholder="Digite sua mensagem..."
+                  className="h-11 flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                  onKeyDown={(event) => event.key === "Enter" && !event.shiftKey && handleSend()}
+                  aria-label="Mensagem"
+                />
+
+                <Button
+                  size="sm"
+                  onClick={handleSend}
+                  disabled={!message.trim()}
+                  className="h-11 rounded-full bg-emerald-600 px-5 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+                >
+                  <Send className="mr-2 h-4 w-4" />
+                  Enviar
+                  <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
+                </Button>
+              </div>
+
+              {showEmojiPicker ? (
+                <div className="rounded-[22px] border border-border/60 bg-background/95 p-3 shadow-lg">
+                  <div className="grid grid-cols-6 gap-2">
+                    {emojiList.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  className="h-9 w-9 rounded-xl text-lg transition-colors hover:bg-secondary"
+                  onClick={() => insertEmoji(emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </section>
+        </div>
+      </div>
+    </section>
   )
 }
 
-function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
+function MessageBubble({
+  message,
+  isFirst,
+  contactName,
+}: {
+  message: Message
+  isFirst: boolean
+  contactName: string
+}) {
   const isContact = message.sender === "contact"
   const isBot = message.sender === "bot"
 
@@ -334,53 +394,60 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
     >
       <div
         className={`
-          max-w-[70%] rounded-2xl px-4 py-3 shadow-sm
-          ${isContact
-            ? "bg-card border border-border/50 rounded-bl-md"
-            : "bg-primary text-primary-foreground rounded-br-md shadow-lg shadow-primary/20"
+          max-w-[72%] rounded-[22px] px-4 py-3.5 shadow-sm
+          ${
+            isContact
+              ? "border border-slate-200/80 bg-slate-50/95 text-slate-900 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]"
+              : "bg-emerald-700 text-emerald-50 shadow-[0_14px_30px_-18px_rgba(5,150,105,0.45)]"
           }
-          ${isBot ? "bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-foreground" : ""}
+          ${isBot ? "border border-amber-300/70 bg-amber-50 text-slate-900 shadow-[0_10px_24px_-20px_rgba(120,53,15,0.22)]" : ""}
         `}
       >
-        {message.attachment && (
+        {!isContact ? (
+          <div className="mb-1.5 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-current/70">
+            {isBot ? (
+              <>
+                <Bot className="h-3.5 w-3.5" />
+                Assistente IA
+              </>
+            ) : (
+              <>
+                <User className="h-3.5 w-3.5" />
+                Você
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {message.attachment ? (
           <div className="mb-2">
-            {message.attachment.type === "image" && (
+            {message.attachment.type === "image" ? (
               <img
                 src={message.attachment.url}
                 alt={message.attachment.name}
-                className="max-w-full rounded-lg border border-border/50"
+                className="max-w-full rounded-2xl border border-border/50"
               />
-            )}
-            {message.attachment.type === "video" && (
-              <video src={message.attachment.url} controls className="max-w-full rounded-lg border border-border/50" />
-            )}
-            {message.attachment.type === "audio" && (
-              <audio src={message.attachment.url} controls className="w-full" />
-            )}
-            {message.attachment.type === "file" && (
-              <a
-                href={message.attachment.url}
-                download={message.attachment.name}
-                className="text-sm text-primary underline"
-              >
+            ) : null}
+            {message.attachment.type === "video" ? (
+              <video src={message.attachment.url} controls className="max-w-full rounded-2xl border border-border/50" />
+            ) : null}
+            {message.attachment.type === "audio" ? <audio src={message.attachment.url} controls className="w-full" /> : null}
+            {message.attachment.type === "file" ? (
+              <a href={message.attachment.url} download={message.attachment.name} className="text-sm text-primary underline">
                 {message.attachment.name}
               </a>
-            )}
+            ) : null}
           </div>
-        )}
-        {isBot && (
-          <div className="flex items-center gap-1.5 text-xs text-amber-600 mb-1.5">
-            <Bot className="h-3 w-3" />
-            <span className="font-medium">Assistente IA</span>
-          </div>
-        )}
-        {message.content && <p className="text-sm leading-relaxed">{message.content}</p>}
-        <div className={`flex items-center gap-1.5 mt-2 ${isContact ? "justify-start" : "justify-end"}`}>
-          <span className={`text-xs ${isContact ? "text-muted-foreground" : "text-primary-foreground/70"}`}>
+          ) : null}
+
+        {message.content ? <p className="break-words text-[15px] leading-7 tracking-[-0.01em]">{message.content}</p> : null}
+
+        <div className={`mt-2.5 flex items-center gap-1.5 ${isContact ? "justify-start" : "justify-end"}`}>
+          <span className={`text-[11px] font-medium ${isContact ? "text-slate-500" : "text-emerald-50/85"}`}>
             {message.time}
           </span>
-          {message.status && !isContact && (
-            <span className="text-primary-foreground/70">
+          {!isContact && message.status ? (
+            <span className="text-emerald-50/85">
               {message.status === "read" ? (
                 <CheckCheck className="h-3.5 w-3.5" />
               ) : message.status === "delivered" ? (
@@ -389,7 +456,10 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
                 <Check className="h-3.5 w-3.5" />
               )}
             </span>
-          )}
+          ) : null}
+          {isContact ? (
+            <span className="text-[11px] text-muted-foreground/80">{contactName}</span>
+          ) : null}
         </div>
       </div>
     </div>

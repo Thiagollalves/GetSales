@@ -1,23 +1,94 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
-import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
+import { useCallback, useDeferredValue, useEffect, useState } from "react"
 import { ChatWindow } from "@/components/dashboard/inbox/chat-window"
 import { ContactProfile } from "@/components/dashboard/inbox/contact-profile"
+import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
+import {
+  initialConversations,
+  type Attachment,
+  type Conversation,
+  type Message,
+} from "@/lib/mock-data"
+import {
+  getConversationPriority,
+  getInboxTab,
+  type InboxFilter,
+  type InboxTab,
+  matchesInboxFilter,
+  matchesInboxSearch,
+} from "@/lib/inbox"
 import { toast } from "sonner"
-import { initialConversations, type Conversation, type Message, type Attachment } from "@/lib/mock-data"
 
 export type { Conversation, Message, Attachment }
 
+const priorityRank: Record<"low" | "medium" | "high", number> = {
+  high: 0,
+  medium: 1,
+  low: 2,
+}
+
+function getDerivedPriority(score: number) {
+  if (score >= 80) return "high"
+  if (score >= 50) return "medium"
+  return "low"
+}
+
 export default function InboxPage() {
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
-  const [selectedId, setSelectedId] = useState<number | null>(1)
-  const [showProfile, setShowProfile] = useState(true)
+  const [selectedId, setSelectedId] = useState<number | null>(initialConversations[0]?.id ?? null)
+  const [activeTab, setActiveTab] = useState<InboxTab>("ativos")
+  const [activeFilter, setActiveFilter] = useState<InboxFilter>("todos")
+  const [searchQuery, setSearchQuery] = useState("")
+  const [showInspector, setShowInspector] = useState(false)
   const [newChatCounter, setNewChatCounter] = useState(1)
 
-  const selectedConversation = conversations.find((c) => c.id === selectedId) || null
+  const deferredSearchQuery = useDeferredValue(searchQuery)
 
-  const createConversation = useCallback(() => {
+  const selectedConversation = conversations.find((conversation) => conversation.id === selectedId) || null
+
+  useEffect(() => {
+    const stored = localStorage.getItem("inbox_conversations")
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored) as Conversation[]
+        if (parsed.length > 0) {
+          setConversations(parsed)
+          setSelectedId((currentSelectedId) => {
+            const existingConversation = parsed.find((conversation) => conversation.id === currentSelectedId)
+            return existingConversation?.id ?? parsed[0].id
+          })
+        }
+      } catch (error) {
+        console.warn("Failed to load conversations", error)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
+  }, [conversations])
+
+  useEffect(() => {
+    if (selectedConversation) {
+      return
+    }
+
+    if (conversations[0]) {
+      setSelectedId(conversations[0].id)
+    }
+  }, [conversations, selectedConversation])
+
+  const updateConversation = useCallback(
+    (conversationId: number, updater: (conversation: Conversation) => Conversation) => {
+      setConversations((previous) =>
+        previous.map((conversation) => (conversation.id === conversationId ? updater(conversation) : conversation)),
+      )
+    },
+    [],
+  )
+
+  const handleCreateConversation = useCallback(() => {
     const counter = newChatCounter
     const name = `Novo contato ${counter}`
     const avatar = name
@@ -36,6 +107,7 @@ export default function InboxPage() {
       time: "Agora",
       unread: false,
       score: 50,
+      priority: "medium",
       tags: [],
       messages: [],
       status: "novo",
@@ -44,164 +116,252 @@ export default function InboxPage() {
       email: "",
       location: "",
       customerSince: "Agora",
+      internalNotes: [],
     }
 
-    setConversations((prev) => [newConversation, ...prev])
+    setConversations((previous) => [newConversation, ...previous])
     setSelectedId(newConversation.id)
-    setShowProfile(true)
-    setNewChatCounter((prev) => prev + 1)
+    setActiveTab("pendentes")
+    setShowInspector(true)
+    setNewChatCounter((previous) => previous + 1)
   }, [newChatCounter])
 
-  useEffect(() => {
-    const stored = localStorage.getItem("inbox_conversations")
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as Conversation[]
-        if (parsed.length > 0) {
-          setConversations(parsed)
-        }
-      } catch (error) {
-        console.warn("Failed to load conversations", error)
-      }
+  const handleSelectConversation = useCallback((conversation: Conversation) => {
+    setSelectedId(conversation.id)
+    if (getInboxTab(conversation) === "fechados") {
+      setActiveTab("fechados")
     }
   }, [])
 
-  useEffect(() => {
-    localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
-  }, [conversations])
+  const handleSendMessage = useCallback(
+    async ({ text, attachment }: { text?: string; attachment?: Attachment }) => {
+      if (!selectedConversation) return
+      if (!text && !attachment) return
 
-  useEffect(() => {
-    const handleNewConversation = () => {
-      createConversation()
-    }
+      const messageText = text ?? attachment?.name ?? ""
 
-    window.addEventListener("dashboard:new-conversation", handleNewConversation)
-    return () => window.removeEventListener("dashboard:new-conversation", handleNewConversation)
-  }, [createConversation])
+      const newMessage: Message = {
+        id: Date.now(),
+        content: text ?? "",
+        sender: "agent",
+        time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        status: "sent",
+        attachment,
+      }
 
-  const handleSendMessage = async ({ text, attachment }: { text?: string; attachment?: Attachment }) => {
-    if (!selectedConversation) return
-    if (!text && !attachment) return
+      updateConversation(selectedConversation.id, (conversation) => {
+        const nextMessages = [...conversation.messages, newMessage]
 
-    const newMessage: Message = {
-      id: Date.now(),
-      content: text ?? "",
-      sender: "agent",
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      status: "sent",
-      attachment,
-    }
-
-    // Update local state immediately
-    const updatedConversations = conversations.map(c => {
-      if (c.id === selectedId) {
         return {
-          ...c,
-          messages: [...c.messages, newMessage],
-          lastMessage: text || attachment?.name || "Anexo enviado",
+          ...conversation,
+          messages: nextMessages,
+          lastMessage: messageText || conversation.lastMessage,
           time: "Agora",
           unread: false,
         }
-      }
-      return c
-    })
-    setConversations(updatedConversations)
+      })
 
-    // Call API if channel is WhatsApp
-    if (selectedConversation.channel === 'whatsapp' && text) {
-      const token = localStorage.getItem("wh_access_token");
-      const phoneId = localStorage.getItem("wh_phone_id");
-      // Use phone from conversation or fallback
-      const targetPhone = selectedConversation.phone;
+      if (selectedConversation.channel === "whatsapp" && text) {
+        const targetPhone = selectedConversation.phone
 
-      if (token && phoneId && targetPhone) {
-        try {
-          toast.promise(
-            fetch('/api/whatsapp/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                phone: targetPhone,
-                message: text ?? "",
-                token,
-                phoneId
-              })
-            }).then(async res => {
-              if (!res.ok) throw new Error('Falha no envio API');
-              return res.json();
-            }),
-            {
-              loading: 'Enviando p/ WhatsApp...',
-              success: 'Enviado com sucesso!',
-              error: 'Erro ao enviar p/ API'
-            }
-          );
-        } catch (error) {
-          console.error("Failed to send", error);
+        if (targetPhone) {
+          try {
+            toast.promise(
+              fetch("/api/whatsapp/send", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  phone: targetPhone,
+                  message: text ?? "",
+                }),
+              }).then(async (response) => {
+                const data = await response.json().catch(() => null)
+                if (!response.ok) {
+                  const errorMessage =
+                    response.status === 401
+                      ? "Sua sessão expirou. Faça login novamente."
+                      : data?.error || "Falha no envio API"
+                  throw new Error(errorMessage)
+                }
+                return data
+              }),
+              {
+                loading: "Enviando p/ WhatsApp...",
+                success: "Enviado com sucesso!",
+                error: "Erro ao enviar p/ API",
+              },
+            )
+          } catch (error) {
+            console.error("Failed to send", error)
+          }
         }
-      } else if (!targetPhone) {
-        console.warn("No phone number for contact");
       }
-    }
-  }
+    },
+    [selectedConversation, updateConversation],
+  )
 
-  const handleUpdateTags = (conversationId: number, tags: string[]) => {
-    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, tags } : c)))
-  }
+  const handleUpdateTags = useCallback(
+    (conversationId: number, tags: string[]) => {
+      updateConversation(conversationId, (conversation) => ({ ...conversation, tags }))
+    },
+    [updateConversation],
+  )
 
-  const handleUpdateScore = (conversationId: number, score: number) => {
-    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, score } : c)))
-  }
+  const handleUpdateScore = useCallback(
+    (conversationId: number, score: number) => {
+      updateConversation(conversationId, (conversation) => ({
+        ...conversation,
+        score,
+        priority: getDerivedPriority(score),
+      }))
+    },
+    [updateConversation],
+  )
 
-  const handleUpdateProfile = (conversationId: number, updates: Partial<Conversation>) => {
-    setConversations((prev) =>
-      prev.map((c) => {
-        if (c.id !== conversationId) return c
-        const nextName = updates.name ?? c.name
+  const handleUpdateProfile = useCallback(
+    (conversationId: number, updates: Partial<Conversation>) => {
+      updateConversation(conversationId, (conversation) => {
+        const nextName = updates.name ?? conversation.name
         const nextAvatar = nextName
           .split(" ")
           .map((part) => part[0])
           .join("")
           .slice(0, 2)
           .toUpperCase()
-        return { ...c, ...updates, avatar: nextAvatar }
+
+        return { ...conversation, ...updates, avatar: nextAvatar }
       })
-    )
+    },
+    [updateConversation],
+  )
+
+  const handleScheduleMeeting = useCallback(
+    (conversationId: number, nextMeeting: string) => {
+      updateConversation(conversationId, (conversation) => ({ ...conversation, nextMeeting }))
+    },
+    [updateConversation],
+  )
+
+  const handleCloseConversation = useCallback(() => {
+    if (!selectedConversation) return
+
+    updateConversation(selectedConversation.id, (conversation) => ({
+      ...conversation,
+      status: "resolvido",
+      unread: false,
+    }))
+    setActiveTab("fechados")
+    toast.success("Atendimento fechado.")
+  }, [selectedConversation, updateConversation])
+
+  const handleReturnConversation = useCallback(() => {
+    if (!selectedConversation) return
+
+    updateConversation(selectedConversation.id, (conversation) => ({
+      ...conversation,
+      status: "ativo",
+      unread: false,
+    }))
+    setActiveTab("ativos")
+    toast.success("Atendimento retornado para ativos.")
+  }, [selectedConversation, updateConversation])
+
+  const handleTransferConversation = useCallback(() => {
+    if (!selectedConversation || typeof window === "undefined") return
+
+    const currentAssignee = selectedConversation.assignee ?? ""
+    const nextAssignee = window.prompt("Transferir atendimento para:", currentAssignee)
+    const trimmedAssignee = nextAssignee?.trim()
+
+    if (!trimmedAssignee) return
+
+    updateConversation(selectedConversation.id, (conversation) => ({
+      ...conversation,
+      assignee: trimmedAssignee,
+      status: "ativo",
+      unread: false,
+    }))
+    setActiveTab("ativos")
+    toast.success(`Atendimento transferido para ${trimmedAssignee}.`)
+  }, [selectedConversation, updateConversation])
+
+  const tabCounts = {
+    ativos: conversations.filter((conversation) => getInboxTab(conversation) === "ativos").length,
+    pendentes: conversations.filter((conversation) => getInboxTab(conversation) === "pendentes").length,
+    fechados: conversations.filter((conversation) => getInboxTab(conversation) === "fechados").length,
   }
 
-  const handleScheduleMeeting = (conversationId: number, nextMeeting: string) => {
-    setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, nextMeeting } : c)))
-  }
+  const visibleConversations = conversations
+    .filter((conversation) => getInboxTab(conversation) === activeTab)
+    .filter((conversation) => matchesInboxFilter(conversation, activeFilter))
+    .filter((conversation) => matchesInboxSearch(conversation, deferredSearchQuery))
+    .sort((left, right) => {
+      if (left.unread !== right.unread) {
+        return left.unread ? -1 : 1
+      }
+
+      const leftPriority = priorityRank[getConversationPriority(left)]
+      const rightPriority = priorityRank[getConversationPriority(right)]
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority
+      }
+
+      return right.score - left.score
+    })
 
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      <ConversationList
-        conversations={conversations}
-        selectedId={selectedId}
-        onSelect={(c) => setSelectedId(c.id)}
-      />
-      {selectedConversation ? (
-        <>
+    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.9),_rgba(246,242,233,0.92)_40%,_rgba(239,234,224,0.96)_100%)] px-4 py-3 lg:px-6 lg:py-4">
+      <div className="mx-auto flex h-full w-full max-w-[1880px] min-h-0 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-4 xl:grid" style={{ gridTemplateColumns: "minmax(20rem, 22rem) minmax(0, 1fr)" }}>
+          <ConversationList
+            conversations={visibleConversations}
+            selectedId={selectedId}
+            onSelect={handleSelectConversation}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            tabCounts={tabCounts}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            onCreateConversation={handleCreateConversation}
+            onResetFilters={() => {
+              setSearchQuery("")
+              setActiveFilter("todos")
+            }}
+          />
+
           <ChatWindow
             conversation={selectedConversation}
-            onToggleProfile={() => setShowProfile(!showProfile)}
+            onToggleInspector={() => setShowInspector((previous) => !previous)}
             onSendMessage={handleSendMessage}
+            onCloseConversation={handleCloseConversation}
+            onReturnConversation={handleReturnConversation}
+            onTransferConversation={handleTransferConversation}
+            onCreateConversation={handleCreateConversation}
+            onSearchConversation={() => toast("Busca na conversa", { description: "Filtro rápido vindo na próxima etapa." })}
+            onOpenShortcuts={() => toast("Atalhos rápidos", { description: "O painel de atalhos já está priorizado na composição." })}
+            isInspectorOpen={showInspector}
           />
-          {showProfile && (
+        </div>
+      </div>
+
+      {showInspector && selectedConversation ? (
+        <div className="fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-foreground/45 backdrop-blur-sm" onClick={() => setShowInspector(false)} />
+          <div className="absolute inset-y-0 right-0 w-full max-w-[24rem] animate-slide-in-right p-3 sm:max-w-[28rem]">
             <ContactProfile
               conversation={selectedConversation}
               onUpdateTags={handleUpdateTags}
               onUpdateScore={handleUpdateScore}
               onUpdateProfile={handleUpdateProfile}
               onScheduleMeeting={handleScheduleMeeting}
+              onCloseInspector={() => setShowInspector(false)}
             />
-          )}
-        </>
-      ) : (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          Selecione uma conversa para começar
+          </div>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

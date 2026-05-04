@@ -31,7 +31,7 @@ export function LandingHeader() {
           Español
         </Button>
         <Button asChild>
-          <Link href="/dashboard">Agendar demonstração</Link>
+          <Link href="/login?next=/dashboard">Entrar</Link>
         </Button>
       </div>
     </header>

@@ -15,7 +15,17 @@ No `.env.local`:
 META_WHATSAPP_TOKEN="<token-permanente>"
 META_PHONE_NUMBER_ID="<phone-number-id>"
 META_VERIFY_TOKEN="<verify-token>"
+META_APP_SECRET="<app-secret>"
 META_GRAPH_API_VERSION="v20.0"
+ADMIN_ACCESS_USERNAME="<usuario-admin>"
+ADMIN_ACCESS_TOKEN="<senha-admin>"
+```
+
+Para teste local, você pode usar:
+
+```bash
+ADMIN_ACCESS_USERNAME="admin"
+ADMIN_ACCESS_TOKEN="getsales-dev-access"
 ```
 
 ### Webhook
@@ -27,6 +37,7 @@ https://<sua-url>/api/whatsapp/webhook
 ```
 
 Use o mesmo `META_VERIFY_TOKEN` definido no ambiente.
+O `META_APP_SECRET` é usado para validar a assinatura `X-Hub-Signature-256` antes de processar qualquer payload.
 
 ## 2. Supabase (armazenar mensagens)
 
@@ -66,7 +77,9 @@ Cada evento recebido da Meta será enviado com o payload completo.
 
 ## 4. Envio de mensagens
 
-A API `/api/whatsapp/send` usa as credenciais do ambiente para enviar mensagens.
+A API `/api/whatsapp/send` usa as credenciais do ambiente para enviar mensagens e exige sessão administrativa válida.
+
+Faça login em `/login` com o usuário e a senha definidos acima antes de usar o dashboard.
 
 Exemplo:
 

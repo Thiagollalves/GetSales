@@ -1,5 +1,3 @@
-"use client"
-
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import {
@@ -15,7 +13,6 @@ import {
   Sparkles,
 } from "lucide-react"
 import Link from "next/link"
-import { useState, useEffect } from "react"
 
 const stats = [
   {
@@ -110,16 +107,10 @@ const quickActions = [
 ]
 
 export default function DashboardPage() {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   return (
     <div className="p-6 lg:p-8 space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div className={`transition-all duration-500 ${mounted ? "animate-fade-in" : "opacity-0"}`}>
+      <div className="animate-fade-in transition-all duration-500">
         <div className="flex items-center gap-2 mb-1">
           <Sparkles className="h-5 w-5 text-primary" />
           <span className="text-sm font-medium text-primary">Bom dia!</span>
@@ -138,7 +129,7 @@ export default function DashboardPage() {
               className={`
                 p-5 border border-border/50 bg-card/50 backdrop-blur-sm
                 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 hover:border-border
-                ${mounted ? "animate-fade-in" : "opacity-0"}
+                animate-fade-in
               `}
               style={{ animationDelay: `${index * 100}ms` }}
             >
@@ -172,7 +163,7 @@ export default function DashboardPage() {
         <Card
           className={`
             lg:col-span-3 p-6 border border-border/50 bg-card/50 backdrop-blur-sm
-            transition-all duration-500 delay-200 ${mounted ? "animate-fade-in" : "opacity-0"}
+            transition-all duration-500 delay-200 animate-fade-in
           `}
         >
           <div className="flex items-center justify-between mb-5">
@@ -188,7 +179,7 @@ export default function DashboardPage() {
             </Button>
           </div>
           <div className="space-y-2">
-            {recentConversations.map((conv, index) => (
+            {recentConversations.map((conv) => (
               <Link
                 key={conv.id}
                 href="/dashboard/inbox"
@@ -235,7 +226,7 @@ export default function DashboardPage() {
         <Card
           className={`
             lg:col-span-2 p-6 border border-border/50 bg-card/50 backdrop-blur-sm
-            transition-all duration-500 delay-300 ${mounted ? "animate-fade-in" : "opacity-0"}
+            transition-all duration-500 delay-300 animate-fade-in
           `}
         >
           <div className="mb-5">

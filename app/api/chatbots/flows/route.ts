@@ -1,12 +1,21 @@
 import { NextResponse } from "next/server";
 import { createFlow, listFlows, updateFlow } from "@/lib/chatbots";
+import { isAdminRequestAuthorized } from "@/lib/admin-auth";
 
-export async function GET() {
+export async function GET(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const flows = listFlows();
   return NextResponse.json(flows);
 }
 
 export async function POST(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Requisição inválida" }, { status: 400 });
@@ -31,6 +40,10 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  if (!isAdminRequestAuthorized(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Requisição inválida" }, { status: 400 });

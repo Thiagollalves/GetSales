@@ -13,6 +13,14 @@ export type Attachment = {
     name: string
 }
 
+export type ConversationPriority = "low" | "medium" | "high"
+
+export interface InternalNote {
+    id: number
+    content: string
+    time: string
+}
+
 export interface Conversation {
     id: number
     name: string
@@ -25,12 +33,14 @@ export interface Conversation {
     tags: string[]
     messages: Message[]
     status: "novo" | "ativo" | "resolvido"
+    priority?: ConversationPriority
     assignee?: string
     phone?: string
     email?: string
     location?: string
     customerSince?: string
     nextMeeting?: string
+    internalNotes?: InternalNote[]
 }
 
 export interface Template {
@@ -59,11 +69,15 @@ export const initialConversations: Conversation[] = [
         score: 85,
         tags: ["VIP", "Interessado"],
         status: "ativo",
+        priority: "high",
         assignee: "Ana Souza",
         phone: "5511999999999",
         email: "contato@email.com",
         location: "São Paulo, SP",
         customerSince: "Jan 2024",
+        internalNotes: [
+            { id: 1, content: "Explicar a IA na reunião de amanhã e confirmar roteiro.", time: "14:08" },
+        ],
         messages: [
             { id: 1, content: "Olá! Vi o anúncio de vocês no Instagram", sender: "contact", time: "10:30" },
             {
@@ -87,6 +101,7 @@ export const initialConversations: Conversation[] = [
         score: 62,
         tags: ["Lead"],
         status: "ativo",
+        priority: "medium",
         assignee: "Equipe Bot",
         email: "joao@empresa.com",
         location: "Rio de Janeiro, RJ",
@@ -113,6 +128,7 @@ export const initialConversations: Conversation[] = [
         score: 78,
         tags: ["Cliente", "Suporte"],
         status: "novo",
+        priority: "high",
         assignee: "Camila Rocha",
         email: "ana@empresa.com",
         location: "Curitiba, PR",
@@ -130,6 +146,7 @@ export const initialConversations: Conversation[] = [
         score: 45,
         tags: ["Prospect"],
         status: "ativo",
+        priority: "medium",
         assignee: "Time Comercial",
         email: "carlos@empresa.com",
         location: "Belo Horizonte, MG",
@@ -156,6 +173,7 @@ export const initialConversations: Conversation[] = [
         score: 55,
         tags: ["Lead"],
         status: "resolvido",
+        priority: "low",
         assignee: "Equipe Bot",
         email: "fernanda@empresa.com",
         location: "Recife, PE",
