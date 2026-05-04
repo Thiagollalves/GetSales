@@ -36,7 +36,7 @@ export function getAdminUsername() {
     return configuredUsername
   }
 
-  return process.env.NODE_ENV === "production" ? "" : FALLBACK_DEV_ADMIN_USERNAME
+  return FALLBACK_DEV_ADMIN_USERNAME
 }
 
 export function getAdminPassword() {
@@ -45,7 +45,7 @@ export function getAdminPassword() {
     return configuredPassword
   }
 
-  return process.env.NODE_ENV === "production" ? "" : FALLBACK_DEV_ADMIN_PASSWORD
+  return FALLBACK_DEV_ADMIN_PASSWORD
 }
 
 export function hasAdminAccessToken() {
