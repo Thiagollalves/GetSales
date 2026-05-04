@@ -3,7 +3,7 @@ import crypto from "node:crypto"
 export const ADMIN_COOKIE_NAME = "getsales_admin_session"
 
 const FALLBACK_DEV_ADMIN_USERNAME = "admin"
-const FALLBACK_DEV_ADMIN_PASSWORD = "getsales-dev-access"
+const FALLBACK_DEV_ADMIN_PASSWORD = "123456"
 const SESSION_PREFIX = "v1"
 
 function timingSafeEqualStrings(expected: string, candidate: string) {

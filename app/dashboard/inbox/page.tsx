@@ -40,6 +40,7 @@ export default function InboxPage() {
   const [activeTab, setActiveTab] = useState<InboxTab>("ativos")
   const [activeFilter, setActiveFilter] = useState<InboxFilter>("todos")
   const [searchQuery, setSearchQuery] = useState("")
+  const [mobileView, setMobileView] = useState<"list" | "chat">("list")
   const [showInspector, setShowInspector] = useState(false)
   const [newChatCounter, setNewChatCounter] = useState(1)
 
@@ -122,12 +123,15 @@ export default function InboxPage() {
     setConversations((previous) => [newConversation, ...previous])
     setSelectedId(newConversation.id)
     setActiveTab("pendentes")
-    setShowInspector(true)
+    setMobileView("chat")
+    setShowInspector(false)
     setNewChatCounter((previous) => previous + 1)
   }, [newChatCounter])
 
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedId(conversation.id)
+    setMobileView("chat")
+    setShowInspector(false)
     if (getInboxTab(conversation) === "fechados") {
       setActiveTab("fechados")
     }
@@ -311,39 +315,50 @@ export default function InboxPage() {
     })
 
   return (
-    <div className="h-[calc(100vh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.9),_rgba(246,242,233,0.92)_40%,_rgba(239,234,224,0.96)_100%)] px-4 py-3 lg:px-6 lg:py-4">
+    <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.9),_rgba(246,242,233,0.92)_40%,_rgba(239,234,224,0.96)_100%)] px-3 py-3 sm:px-4 lg:px-6 lg:py-4">
       <div className="mx-auto flex h-full w-full max-w-[1880px] min-h-0 flex-col">
-        <div className="flex min-h-0 flex-1 flex-col gap-4 xl:grid" style={{ gridTemplateColumns: "minmax(20rem, 22rem) minmax(0, 1fr)" }}>
-          <ConversationList
-            conversations={visibleConversations}
-            selectedId={selectedId}
-            onSelect={handleSelectConversation}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            tabCounts={tabCounts}
-            searchQuery={searchQuery}
-            onSearchQueryChange={setSearchQuery}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            onCreateConversation={handleCreateConversation}
-            onResetFilters={() => {
-              setSearchQuery("")
-              setActiveFilter("todos")
-            }}
-          />
+        <div
+          className="flex min-h-0 flex-1 flex-col gap-3 xl:grid"
+          style={{ gridTemplateColumns: "minmax(18rem, 22rem) minmax(0, 1fr)" }}
+        >
+          <div className={`${mobileView === "list" ? "flex" : "hidden"} min-h-0 xl:flex`}>
+            <ConversationList
+              conversations={visibleConversations}
+              selectedId={selectedId}
+              onSelect={handleSelectConversation}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              tabCounts={tabCounts}
+              searchQuery={searchQuery}
+              onSearchQueryChange={setSearchQuery}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+              onCreateConversation={handleCreateConversation}
+              onResetFilters={() => {
+                setSearchQuery("")
+                setActiveFilter("todos")
+              }}
+            />
+          </div>
 
-          <ChatWindow
-            conversation={selectedConversation}
-            onToggleInspector={() => setShowInspector((previous) => !previous)}
-            onSendMessage={handleSendMessage}
-            onCloseConversation={handleCloseConversation}
-            onReturnConversation={handleReturnConversation}
-            onTransferConversation={handleTransferConversation}
-            onCreateConversation={handleCreateConversation}
-            onSearchConversation={() => toast("Busca na conversa", { description: "Filtro rápido vindo na próxima etapa." })}
-            onOpenShortcuts={() => toast("Atalhos rápidos", { description: "O painel de atalhos já está priorizado na composição." })}
-            isInspectorOpen={showInspector}
-          />
+          <div className={`${mobileView === "chat" ? "flex" : "hidden"} min-h-0 xl:flex`}>
+            <ChatWindow
+              conversation={selectedConversation}
+              onBackToList={() => {
+                setMobileView("list")
+                setShowInspector(false)
+              }}
+              onToggleInspector={() => setShowInspector((previous) => !previous)}
+              onSendMessage={handleSendMessage}
+              onCloseConversation={handleCloseConversation}
+              onReturnConversation={handleReturnConversation}
+              onTransferConversation={handleTransferConversation}
+              onCreateConversation={handleCreateConversation}
+              onSearchConversation={() => toast("Busca na conversa", { description: "Filtro rápido vindo na próxima etapa." })}
+              onOpenShortcuts={() => toast("Atalhos rápidos", { description: "O painel de atalhos já está priorizado na composição." })}
+              isInspectorOpen={showInspector}
+            />
+          </div>
         </div>
       </div>
 

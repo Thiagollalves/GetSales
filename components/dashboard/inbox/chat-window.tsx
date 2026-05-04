@@ -6,7 +6,15 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   Bot,
+  ChevronLeft,
   ChevronDown,
   Check,
   CheckCheck,
@@ -15,6 +23,7 @@ import {
   MapPin,
   Paperclip,
   PanelRightOpen,
+  MoreHorizontal,
   Search,
   Send,
   Smile,
@@ -47,6 +56,7 @@ const channelColors: Record<string, string> = {
 
 interface ChatWindowProps {
   conversation: Conversation | null
+  onBackToList?: () => void
   onToggleInspector: () => void
   onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
   onCloseConversation?: () => void
@@ -60,6 +70,7 @@ interface ChatWindowProps {
 
 export function ChatWindow({
   conversation,
+  onBackToList,
   onToggleInspector,
   onSendMessage,
   onCloseConversation,
@@ -168,8 +179,8 @@ export function ChatWindow({
 
   if (!conversation) {
     return (
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">
-        <div className="flex flex-1 items-center justify-center px-6 text-center">
+      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
+        <div className="flex flex-1 items-center justify-center px-4 py-8 text-center sm:px-6">
           <div className="max-w-md space-y-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
               Workspace da conversa
@@ -199,12 +210,65 @@ export function ChatWindow({
   const priority = getConversationPriority(conversation)
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[28px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur">
-      <header className="border-b border-border/60 bg-background/70 px-5 py-4 backdrop-blur">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
+      <header className="border-b border-border/60 bg-background/70 px-2 py-1.5 backdrop-blur sm:px-5 sm:py-4">
+        <div className="mb-1.5 flex items-center gap-2 xl:hidden">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 shrink-0 rounded-full text-muted-foreground"
+            onClick={onBackToList}
+            aria-label="Voltar para a fila"
+            title="Voltar para a fila"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </Button>
+          <div className="relative shrink-0 pt-0.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-secondary text-[11px] font-semibold text-foreground">
+              {conversation.avatar}
+            </div>
+            <div
+              className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full ${channelColors[conversation.channel]} border-2 border-background`}
+            />
+          </div>
+          <div className="min-w-0 flex-1 space-y-0.5">
+            <h3 className="truncate text-sm font-semibold text-foreground">{conversation.name}</h3>
+            <p className="truncate text-[11px] text-muted-foreground">
+              {conversation.assignee ?? "Sem responsável"} • {channelLabels[conversation.channel]}
+            </p>
+          </div>
+          <div className="flex items-center gap-1">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 rounded-full text-muted-foreground"
+                  aria-label="Ações da conversa"
+                  title="Ações da conversa"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-2xl border-border/60">
+                <DropdownMenuItem onSelect={() => onToggleInspector()}>
+                  {isInspectorOpen ? "Fechar inspector" : "Abrir inspector"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onCloseConversation?.()}>Fechar atendimento</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onReturnConversation?.()}>Retornar para ativos</DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => onTransferConversation?.()}>Transferir atendimento</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => onSearchConversation?.()}>Buscar na conversa</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        <div className="hidden flex-col gap-3 xl:flex xl:flex-row xl:items-start xl:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <div className="relative shrink-0 pt-0.5">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary text-base font-semibold text-foreground">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-sm font-semibold text-foreground sm:h-12 sm:w-12 sm:text-base">
                 {conversation.avatar}
               </div>
               <div
@@ -217,14 +281,14 @@ export function ChatWindow({
                 <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
                   Conversa ativa
                 </p>
-                <h3 className="truncate text-xl font-semibold text-foreground">{conversation.name}</h3>
+                <h3 className="truncate text-lg font-semibold text-foreground sm:text-xl">{conversation.name}</h3>
                 <p className="truncate text-sm text-muted-foreground">
                   {conversation.assignee ?? "Sem responsável"} • {channelLabels[conversation.channel]} • Cliente desde{" "}
                   {conversation.customerSince ?? "agora"}
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="hidden flex-wrap gap-2 sm:flex">
                 <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
                   {getConversationStatusLabel(conversation)}
                 </Badge>
@@ -241,20 +305,33 @@ export function ChatWindow({
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onSearchConversation}>
+          <div className="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-10 w-10 rounded-full text-muted-foreground"
+              onClick={onSearchConversation}
+            >
               <Search className="h-4 w-4" />
             </Button>
-            <Button variant="outline" size="sm" className="rounded-full bg-transparent" onClick={onCloseConversation}>
-              Fechar
+            <Button variant="outline" size="sm" className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm" onClick={onCloseConversation}>
+              <span className="sm:hidden">Fechar</span>
+              <span className="hidden sm:inline">Fechar</span>
             </Button>
-            <Button variant="outline" size="sm" className="rounded-full bg-transparent" onClick={onReturnConversation}>
-              Retornar
+            <Button variant="outline" size="sm" className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm" onClick={onReturnConversation}>
+              <span className="sm:hidden">Retornar</span>
+              <span className="hidden sm:inline">Retornar</span>
             </Button>
-            <Button size="sm" className="rounded-full shadow-sm shadow-primary/20" onClick={onTransferConversation}>
-              Transferir
+            <Button size="sm" className="h-10 rounded-full px-3 text-xs shadow-sm shadow-primary/20 sm:px-4 sm:text-sm" onClick={onTransferConversation}>
+              <span className="sm:hidden">Transferir</span>
+              <span className="hidden sm:inline">Transferir</span>
             </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onToggleInspector}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden h-10 w-10 rounded-full text-muted-foreground xl:inline-flex"
+              onClick={onToggleInspector}
+            >
               <PanelRightOpen className={`h-4 w-4 transition-transform ${isInspectorOpen ? "rotate-180" : ""}`} />
             </Button>
             <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onOpenShortcuts}>
@@ -264,8 +341,8 @@ export function ChatWindow({
         </div>
       </header>
 
-      <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-5 py-6">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-2 py-3 sm:px-5 sm:py-6">
+        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:gap-4">
           {conversation.messages.map((message, index) => (
             <MessageBubble
               key={message.id}
@@ -278,31 +355,51 @@ export function ChatWindow({
         </div>
       </div>
 
-      <div className="border-t border-border/60 bg-background/85 px-5 py-4 backdrop-blur">
-        <div className="space-y-4">
-          <section className="rounded-[24px] border border-border/60 bg-background/80 p-4 shadow-sm">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleAttachFile}>
-                  <Paperclip className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleAttachImage}>
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleEmojiPicker}>
-                  <Smile className="h-4 w-4" />
+      <div className="border-t border-border/60 bg-background/85 px-2 py-2 backdrop-blur sm:px-5 sm:py-4">
+        <div className="space-y-2 sm:space-y-4">
+          <section className="rounded-[20px] border border-border/60 bg-background/80 p-2 shadow-sm sm:rounded-[24px] sm:p-4">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleAttachFile}
+                >
+                  <Paperclip className="h-3.5 w-3.5" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleAttachImage}
+                >
+                  <ImageIcon className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleEmojiPicker}
+                >
+                  <Smile className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
                   onClick={() => notifyAction("Localização", "Atalho de localização em breve.")}
                   title="Localização"
                 >
-                  <MapPin className="h-4 w-4" />
+                  <MapPin className="h-3.5 w-3.5" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground hover:text-foreground" onClick={handleVoiceNote}>
-                  <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                  onClick={handleVoiceNote}
+                >
+                  <Mic className={`h-3.5 w-3.5 ${isRecording ? "text-destructive" : ""}`} />
                 </Button>
                 <div className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground md:flex">
                   <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
@@ -310,7 +407,7 @@ export function ChatWindow({
                 </div>
               </div>
 
-              <div className="relative flex items-center gap-3 rounded-[24px] border border-border/70 bg-background/90 px-3 py-2 shadow-sm">
+              <div className="relative flex flex-row items-end gap-2 rounded-[20px] border border-border/70 bg-background/90 px-2 py-2 shadow-sm sm:gap-3 sm:px-3 sm:py-3">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -334,7 +431,7 @@ export function ChatWindow({
                   value={message}
                   onChange={(event) => setMessage(event.target.value)}
                   placeholder="Digite sua mensagem..."
-                  className="h-11 flex-1 border-0 bg-transparent px-0 text-sm shadow-none focus-visible:ring-0"
+                  className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0"
                   onKeyDown={(event) => event.key === "Enter" && !event.shiftKey && handleSend()}
                   aria-label="Mensagem"
                 />
@@ -343,11 +440,11 @@ export function ChatWindow({
                   size="sm"
                   onClick={handleSend}
                   disabled={!message.trim()}
-                  className="h-11 rounded-full bg-emerald-600 px-5 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
+                  className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 sm:px-5"
                 >
                   <Send className="mr-2 h-4 w-4" />
                   Enviar
-                  <ChevronDown className="ml-2 h-4 w-4 opacity-70" />
+                  <ChevronDown className="ml-2 hidden h-4 w-4 opacity-70 sm:inline-flex" />
                 </Button>
               </div>
 
@@ -355,11 +452,11 @@ export function ChatWindow({
                 <div className="rounded-[22px] border border-border/60 bg-background/95 p-3 shadow-lg">
                   <div className="grid grid-cols-6 gap-2">
                     {emojiList.map((emoji) => (
-                <button
-                  key={emoji}
-                  type="button"
-                  className="h-9 w-9 rounded-xl text-lg transition-colors hover:bg-secondary"
-                  onClick={() => insertEmoji(emoji)}
+                      <button
+                        key={emoji}
+                        type="button"
+                        className="h-9 w-9 rounded-xl text-lg transition-colors hover:bg-secondary"
+                        onClick={() => insertEmoji(emoji)}
                       >
                         {emoji}
                       </button>
@@ -394,7 +491,7 @@ function MessageBubble({
     >
       <div
         className={`
-          max-w-[72%] rounded-[22px] px-4 py-3.5 shadow-sm
+          max-w-[88%] rounded-[20px] px-3.5 py-3 shadow-sm sm:max-w-[72%] sm:rounded-[22px] sm:px-4 sm:py-3.5
           ${
             isContact
               ? "border border-slate-200/80 bg-slate-50/95 text-slate-900 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]"

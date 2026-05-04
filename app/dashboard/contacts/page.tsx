@@ -262,6 +262,62 @@ const getStatusLabel = (status: Conversation["status"]) => {
   return "Ativo";
 };
 
+function ContactMobileCard({
+  contact,
+  onEdit,
+}: {
+  contact: Conversation
+  onEdit: (contact: Conversation) => void
+}) {
+  const noteCount = contact.internalNotes?.length ?? 0
+
+  return (
+    <article className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+            {contact.avatar}
+          </div>
+          <div className="min-w-0">
+            <h3 className="truncate text-sm font-semibold text-foreground">{contact.name}</h3>
+            <p className="truncate text-xs text-muted-foreground">{contact.phone || "Sem telefone"}</p>
+            <p className="truncate text-xs text-muted-foreground">{contact.email || "Sem e-mail"}</p>
+          </div>
+        </div>
+
+        <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-xs" onClick={() => onEdit(contact)}>
+          Editar
+        </Button>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <Badge variant={getStatusBadgeVariant(contact.status)} className="rounded-full px-2.5 py-1 text-[11px]">
+          {getStatusLabel(contact.status)}
+        </Badge>
+        <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] capitalize">
+          {contact.channel}
+        </Badge>
+        <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px]">
+          Score {contact.score}
+        </Badge>
+        {noteCount > 0 ? (
+          <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px]">
+            {noteCount} nota{noteCount > 1 ? "s" : ""}
+          </Badge>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {contact.tags.slice(0, 4).map((tag) => (
+          <Badge key={tag} variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+            {tag}
+          </Badge>
+        ))}
+      </div>
+    </article>
+  )
+}
+
 export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [contacts, setContacts] = useState<Conversation[]>(initialConversations);
@@ -427,18 +483,24 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Contatos</h2>
-        <div className="flex items-center space-x-2">
-          <Button variant="outline" onClick={triggerImport}>
-            <FileSpreadsheet className="mr-2 h-4 w-4" /> Importar
+    <div className="flex-1 space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Contatos</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Gerencie sua base, importe CSV e edite contatos rapidamente.</p>
+        </div>
+        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+          <Button variant="outline" onClick={triggerImport} className="justify-center">
+            <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Importar</span>
           </Button>
-          <Button variant="outline" onClick={handleExportContacts}>
-            <Download className="mr-2 h-4 w-4" /> Exportar
+          <Button variant="outline" onClick={handleExportContacts} className="justify-center">
+            <Download className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={openAddDialog}>
-            <UserPlus className="mr-2 h-4 w-4" /> Novo Contato
+          <Button onClick={openAddDialog} className="justify-center">
+            <UserPlus className="h-4 w-4 sm:mr-2" />
+            <span className="hidden sm:inline">Novo Contato</span>
           </Button>
         </div>
       </div>
@@ -450,18 +512,32 @@ export default function ContactsPage() {
         onChange={handleFileImport}
       />
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-sm">
+        <div className="relative w-full max-w-none sm:max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nome ou tag..."
-            className="pl-9"
+            className="h-11 pl-9"
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      <Card>
+      <div className="grid gap-3 md:hidden">
+        {filteredContacts.map(contact => (
+          <ContactMobileCard key={contact.id} contact={contact} onEdit={openEditDialog} />
+        ))}
+        {filteredContacts.length === 0 ? (
+          <Card className="border-dashed">
+            <CardContent className="px-4 py-8 text-center">
+              <p className="text-sm font-medium text-foreground">Nenhum contato encontrado</p>
+              <p className="mt-1 text-sm text-muted-foreground">Tente uma busca diferente ou adicione um novo contato.</p>
+            </CardContent>
+          </Card>
+        ) : null}
+      </div>
+
+      <Card className="hidden md:block">
         <CardHeader>
           <CardTitle>Base de Contatos ({filteredContacts.length})</CardTitle>
         </CardHeader>
@@ -524,7 +600,7 @@ export default function ContactsPage() {
       </Card>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>
               {dialogMode === "edit" ? "Editar contato" : "Novo contato"}

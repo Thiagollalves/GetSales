@@ -82,7 +82,7 @@ export function DashboardSidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-xl bg-sidebar-bg text-sidebar-foreground shadow-lg"
+        className="fixed left-3 top-3 z-50 rounded-xl bg-sidebar-bg p-2.5 text-sidebar-foreground shadow-lg lg:hidden"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -99,7 +99,7 @@ export function DashboardSidebar() {
       <aside
         className={`
           fixed lg:sticky top-0 left-0 z-50 lg:z-auto
-          h-screen w-[260px] overflow-hidden bg-sidebar-bg text-sidebar-foreground shrink-0
+          h-dvh w-[min(86vw,18rem)] overflow-hidden bg-sidebar-bg text-sidebar-foreground shrink-0
           flex flex-col border-r border-sidebar-border
           transform transition-[width,transform] duration-300 ease-out
           ${collapsed ? "lg:w-[88px]" : "lg:w-[260px]"}
