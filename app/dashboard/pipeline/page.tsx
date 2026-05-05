@@ -36,117 +36,32 @@ import {
   Filter,
   Sparkles,
   Pencil,
-  X,
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { notifyAction } from "@/lib/button-actions";
+import { LeadInspectorSheet, type LeadInspectorDraft } from "@/components/dashboard/pipeline/lead-inspector";
+import {
+  PIPELINE_STORAGE_KEY,
+  createDefaultPipelineStages,
+  loadPipelineStagesFromStorage,
+  savePipelineStagesToStorage,
+  syncInboxConversationFromPipelineLead,
+  type PipelineLead,
+  type PipelineStage,
+} from "@/lib/pipeline-board";
 
 // --- Types ---
-type LeadChannel = "whatsapp" | "instagram" | "telegram" | "email";
+type Lead = PipelineLead;
+type Stage = PipelineStage;
 
-interface Lead {
-  id: string;
-  name: string;
-  company: string;
-  value: number;
-  channel: LeadChannel;
-  lastContact: string;
-  score: number;
-  avatar: string;
-}
+const initialStages: Stage[] = createDefaultPipelineStages();
 
-interface Stage {
-  id: string;
-  title: string;
-  color: string;
-  bgGradient: string;
-  leads: Lead[];
-}
-
-interface LeadForm {
-  name: string;
-  company: string;
-  value: string;
-  lastContact: string;
-  score: string;
-  channel: LeadChannel;
-}
-
-const channelOptions: LeadChannel[] = ["whatsapp", "instagram", "telegram", "email"];
-
-const emptyLeadForm: LeadForm = {
-  name: "",
-  company: "",
-  value: "0",
-  lastContact: "",
-  score: "0",
-  channel: "whatsapp",
-};
-
-const initialStages: Stage[] = [
-  {
-    id: "novos",
-    title: "Novos Leads",
-    color: "bg-blue-500",
-    bgGradient: "from-blue-500/10",
-    leads: [
-      { id: "1", name: "Maria Silva", company: "Tech Solutions", value: 15000, channel: "whatsapp", lastContact: "Hoje", score: 85, avatar: "MS" },
-      { id: "2", name: "João Santos", company: "Digital Corp", value: 8500, channel: "instagram", lastContact: "Ontem", score: 62, avatar: "JS" },
-      { id: "3", name: "Ana Costa", company: "Startup XYZ", value: 25000, channel: "email", lastContact: "2 dias", score: 78, avatar: "AC" },
-    ],
-  },
-  {
-    id: "qualificacao",
-    title: "Qualificação",
-    color: "bg-amber-500",
-    bgGradient: "from-amber-500/10",
-    leads: [
-      { id: "4", name: "Carlos Oliveira", company: "Mega Retail", value: 45000, channel: "telegram", lastContact: "Hoje", score: 90, avatar: "CO" },
-      { id: "5", name: "Fernanda Lima", company: "Service Plus", value: 12000, channel: "whatsapp", lastContact: "3 dias", score: 55, avatar: "FL" },
-    ],
-  },
-  {
-    id: "proposta",
-    title: "Proposta Enviada",
-    color: "bg-purple-500",
-    bgGradient: "from-purple-500/10",
-    leads: [
-      { id: "6", name: "Ricardo Mendes", company: "Global Industries", value: 120000, channel: "email", lastContact: "Ontem", score: 92, avatar: "RM" },
-    ],
-  },
-  {
-    id: "negociacao",
-    title: "Negociação",
-    color: "bg-orange-500",
-    bgGradient: "from-orange-500/10",
-    leads: [
-      { id: "7", name: "Patricia Souza", company: "Enterprise Co", value: 85000, channel: "whatsapp", lastContact: "Hoje", score: 88, avatar: "PS" },
-      { id: "8", name: "Lucas Ferreira", company: "Innovation Hub", value: 32000, channel: "telegram", lastContact: "Hoje", score: 75, avatar: "LF" },
-    ],
-  },
-  {
-    id: "fechamento",
-    title: "Fechamento",
-    color: "bg-primary",
-    bgGradient: "from-primary/10",
-    leads: [
-      { id: "9", name: "Mariana Rocha", company: "Alpha Business", value: 95000, channel: "email", lastContact: "Hoje", score: 98, avatar: "MR" },
-    ],
-  },
-];
-
-const channelColors: Record<LeadChannel, string> = {
+const channelColors: Record<Lead["channel"], string> = {
   whatsapp: "bg-green-500",
   instagram: "bg-gradient-to-tr from-purple-500 to-pink-500",
   telegram: "bg-blue-500",
   email: "bg-gray-500",
-};
-
-const channelLabels: Record<LeadChannel, string> = {
-  whatsapp: "WhatsApp",
-  instagram: "Instagram",
-  telegram: "Telegram",
-  email: "E-mail",
+  webchat: "bg-primary",
 };
 
 const stagePalette = [
@@ -242,10 +157,10 @@ function SortableLead({ lead, onEdit }: { lead: Lead; onEdit: (lead: Lead) => vo
 // --- Main Pipeline Logic ---
 export default function PipelinePage() {
   const [stages, setStages] = useState<Stage[]>(initialStages);
+  const [hasHydratedStages, setHasHydratedStages] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
   const [editingStageId, setEditingStageId] = useState<string | null>(null);
-  const [leadForm, setLeadForm] = useState<LeadForm>(emptyLeadForm);
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -254,19 +169,29 @@ export default function PipelinePage() {
   );
 
   useEffect(() => {
-    if (editingLead) {
-      setLeadForm({
-        name: editingLead.name,
-        company: editingLead.company,
-        value: editingLead.value.toString(),
-        lastContact: editingLead.lastContact,
-        score: editingLead.score.toString(),
-        channel: editingLead.channel,
-      });
-    } else {
-      setLeadForm(emptyLeadForm);
+    setStages(loadPipelineStagesFromStorage(initialStages));
+    setHasHydratedStages(true);
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydratedStages) {
+      return;
     }
-  }, [editingLead]);
+
+    savePipelineStagesToStorage(stages);
+  }, [hasHydratedStages, stages]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== PIPELINE_STORAGE_KEY) return;
+      setStages(loadPipelineStagesFromStorage(initialStages));
+    };
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, []);
 
   const findStage = (id: string) => {
     return stages.find(s => s.id === id || s.leads.some(l => l.id === id));
@@ -333,35 +258,61 @@ export default function PipelinePage() {
     setEditingStageId(null);
   };
 
-  const handleSaveLead = () => {
+  const handleSaveLead = (draft: LeadInspectorDraft) => {
     if (!editingLead || !editingStageId) return;
 
-    const numericValue = Number(leadForm.value);
-    const numericScore = Number(leadForm.score);
+    const nextName = draft.name.trim() || editingLead.name;
+    const nextAvatar = nextName
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase();
+    const numericValue = Number(draft.value);
+    const numericScore = Number(draft.score);
+    const desiredStageId = draft.stageId || editingStageId;
+    const nextStageId = stages.some((stage) => stage.id === desiredStageId) ? desiredStageId : editingStageId;
+
+    const nextLead: Lead = {
+      ...editingLead,
+      name: nextName,
+      company: draft.company.trim() || editingLead.company,
+      value: Number.isFinite(numericValue) ? numericValue : editingLead.value,
+      lastContact: draft.lastContact.trim() || editingLead.lastContact,
+      score: Number.isFinite(numericScore) ? numericScore : editingLead.score,
+      channel: draft.channel,
+      avatar: nextAvatar,
+    };
 
     setStages((prev) =>
       prev.map((stage) => {
-        if (stage.id !== editingStageId) return stage;
-        return {
-          ...stage,
-          leads: stage.leads.map((lead) =>
-            lead.id === editingLead.id
-              ? {
-                  ...lead,
-                  name: leadForm.name.trim() || lead.name,
-                  company: leadForm.company.trim() || lead.company,
-                  value: Number.isFinite(numericValue) ? numericValue : lead.value,
-                  lastContact: leadForm.lastContact.trim() || lead.lastContact,
-                  score: Number.isFinite(numericScore) ? numericScore : lead.score,
-                  channel: leadForm.channel,
-                }
-              : lead
-          ),
-        };
+        if (stage.id === editingStageId && stage.id === nextStageId) {
+          return {
+            ...stage,
+            leads: stage.leads.map((lead) => (lead.id === editingLead.id ? nextLead : lead)),
+          };
+        }
+
+        if (stage.id === editingStageId) {
+          return {
+            ...stage,
+            leads: stage.leads.filter((lead) => lead.id !== editingLead.id),
+          };
+        }
+
+        if (stage.id === nextStageId) {
+          return {
+            ...stage,
+            leads: [nextLead, ...stage.leads.filter((lead) => lead.id !== editingLead.id)],
+          };
+        }
+
+        return stage;
       })
     );
 
-    notifyAction("Lead atualizado", `${leadForm.name || editingLead.name} foi atualizado.`);
+    syncInboxConversationFromPipelineLead(nextLead, nextStageId);
+    notifyAction("Lead atualizado", `${nextName} foi atualizado.`);
     setEditingLead(null);
     setEditingStageId(null);
   };
@@ -413,6 +364,10 @@ export default function PipelinePage() {
         .filter((stage) => stage.id !== stageId)
     );
 
+    stageToRemove.leads.forEach((lead) => {
+      syncInboxConversationFromPipelineLead(lead, targetStage.id);
+    });
+
     notifyAction(
       "Etapa removida",
       `${stageToRemove.title} foi removida e seus leads foram enviados para ${targetStage.title}.`
@@ -450,7 +405,7 @@ export default function PipelinePage() {
       const overIndex = overItems.findIndex(l => l.id === overId);
 
       let newIndex;
-      if (overId in initialStages.map(s => s.id)) {
+      if (typeof overId === "string" && stages.some((stage) => stage.id === overId)) {
         newIndex = overItems.length + 1;
       } else {
         const isBelowOverItem =
@@ -501,6 +456,8 @@ export default function PipelinePage() {
           return s;
         }));
       }
+    } else if (activeLead?.sourceConversationId && overStage && activeStage && activeStage.id !== overStage.id) {
+      syncInboxConversationFromPipelineLead(activeLead, overStage.id);
     }
     setActiveLead(null);
   };
@@ -517,8 +474,6 @@ export default function PipelinePage() {
 
   const totalLeads = stages.reduce((sum, s) => sum + s.leads.length, 0);
   const totalValue = stages.reduce((sum, s) => sum + s.leads.reduce((val, l) => val + l.value, 0), 0);
-  const editingStage = editingStageId ? stages.find((stage) => stage.id === editingStageId) : undefined;
-
   return (
     <div className="h-[calc(100vh-4rem)] flex flex-col">
       {/* Header */}
@@ -548,109 +503,13 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {editingLead && (
-        <Card className="mx-4 mt-4 border border-border/50 bg-card/60 shadow-sm">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                Editando lead
-              </p>
-              <h3 className="text-lg font-semibold">{editingLead.name}</h3>
-              <p className="text-sm text-muted-foreground">
-                Etapa: {editingStage?.title ?? "—"}
-              </p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Nome</p>
-              <Input
-                value={leadForm.name}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, name: event.target.value }))
-                }
-                placeholder="Nome completo"
-              />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Empresa</p>
-              <Input
-                value={leadForm.company}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, company: event.target.value }))
-                }
-                placeholder="Empresa"
-              />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Canal</p>
-              <select
-                value={leadForm.channel}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, channel: event.target.value as LeadChannel }))
-                }
-                className="w-full rounded-md border border-border/60 bg-card/70 px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              >
-                {channelOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {channelLabels[option]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Valor (BRL)</p>
-              <Input
-                type="number"
-                min={0}
-                step={1000}
-                value={leadForm.value}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, value: event.target.value }))
-                }
-                placeholder="Ex: 15000"
-              />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Pontuação</p>
-              <Input
-                type="number"
-                min={0}
-                max={100}
-                value={leadForm.score}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, score: event.target.value }))
-                }
-                placeholder="Probabilidade (%)"
-              />
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1 uppercase tracking-widest">Último contato</p>
-              <Input
-                value={leadForm.lastContact}
-                onChange={(event) =>
-                  setLeadForm((prev) => ({ ...prev, lastContact: event.target.value }))
-                }
-                placeholder="Hoje, Ontem etc."
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 mt-4">
-            <Button onClick={handleSaveLead}>Salvar alterações</Button>
-            <Button variant="outline" onClick={handleCancelEdit}>
-              Cancelar
-            </Button>
-          </div>
-        </Card>
-      )}
+      <LeadInspectorSheet
+        lead={editingLead}
+        stageId={editingStageId}
+        stages={stages}
+        onSave={handleSaveLead}
+        onCancel={handleCancelEdit}
+      />
 
       <DndContext
         sensors={sensors}

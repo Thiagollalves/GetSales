@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
 import {
   CalendarDays,
@@ -19,6 +20,7 @@ import {
   PanelRightClose,
   Phone,
   Plus,
+  GitBranch,
   ShieldAlert,
   Tag,
   Target,
@@ -32,6 +34,14 @@ import {
   getPriorityLabel,
   getPriorityTone,
 } from "@/lib/inbox"
+import {
+  getPipelineStageLabel,
+  loadPipelineStagesFromStorage,
+  normalizePipelineStageId,
+  PIPELINE_STAGE_OPTIONS,
+  PIPELINE_STORAGE_KEY,
+  type PipelineStage,
+} from "@/lib/pipeline-board"
 
 interface ContactProfileProps {
   conversation: Conversation
@@ -78,6 +88,7 @@ export function ContactProfile({
   const [isEditing, setIsEditing] = useState(false)
   const [tagInput, setTagInput] = useState("")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
+  const [pipelineStages, setPipelineStages] = useState<PipelineStage[]>([])
   const [draftProfile, setDraftProfile] = useState({
     name: conversation.name,
     phone: conversation.phone ?? "",
@@ -103,11 +114,57 @@ export function ContactProfile({
     setTagInput("")
   }, [conversation])
 
+  useEffect(() => {
+    setPipelineStages(loadPipelineStagesFromStorage())
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== PIPELINE_STORAGE_KEY) return
+      setPipelineStages(loadPipelineStagesFromStorage())
+    }
+
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
+  }, [])
+
   const priority = getConversationPriority(conversation)
   const priorityLabel = getPriorityLabel(priority)
   const priorityTone = getPriorityTone(priority)
   const noteCount = conversation.internalNotes?.length ?? 0
   const lastMessage = conversation.messages[conversation.messages.length - 1]
+  const pipelineOptions = useMemo(() => {
+    const knownIds = new Set<string>(PIPELINE_STAGE_OPTIONS.map((option) => option.id))
+    const options = [
+      ...PIPELINE_STAGE_OPTIONS,
+      ...pipelineStages.filter((stage) => !knownIds.has(stage.id)).map((stage) => ({
+        id: stage.id,
+        label: stage.title,
+      })),
+    ]
+
+    const normalizedPipeline = normalizePipelineStageId(conversation.pipeline)
+    const currentPipelineId = normalizedPipeline ?? conversation.pipeline?.trim() ?? ""
+
+    if (currentPipelineId && !options.some((option) => option.id === currentPipelineId)) {
+      return [
+        {
+          id: currentPipelineId,
+          label: conversation.pipeline?.trim() ?? currentPipelineId,
+        },
+        ...options,
+      ]
+    }
+
+    return options
+  }, [conversation.pipeline, pipelineStages])
+  const currentPipelineId = normalizePipelineStageId(conversation.pipeline) ?? conversation.pipeline?.trim() ?? ""
+  const currentPipelineLabel =
+    pipelineOptions.find((option) => option.id === currentPipelineId)?.label ||
+    getPipelineStageLabel(conversation.pipeline) ||
+    "Sem etapa"
   const nextMeetingLabel = useMemo(() => {
     if (selectedDate) {
       return formatMeetingDate(selectedDate)
@@ -380,6 +437,41 @@ export function ContactProfile({
               <Button className="h-10 rounded-full px-4" onClick={handleAddTag}>
                 Salvar
               </Button>
+            </div>
+          </section>
+
+          <section className="rounded-[24px] border border-border/60 bg-background/80 p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm font-semibold text-foreground">Pipeline</h4>
+              </div>
+              {currentPipelineId ? (
+                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                  {currentPipelineLabel}
+                </Badge>
+              ) : null}
+            </div>
+
+            <div className="space-y-2">
+              <Select
+                value={currentPipelineId}
+                onValueChange={(value) => onUpdateProfile(conversation.id, { pipeline: value })}
+              >
+                <SelectTrigger className="h-11 w-full rounded-full bg-background/90 px-4">
+                  <SelectValue placeholder="Atribuir contato a uma etapa" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PIPELINE_STAGE_OPTIONS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs leading-5 text-muted-foreground">
+                Use este campo para ligar o contato diretamente a uma etapa da pipeline comercial.
+              </p>
             </div>
           </section>
 

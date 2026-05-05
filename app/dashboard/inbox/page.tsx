@@ -18,6 +18,10 @@ import {
   matchesInboxFilter,
   matchesInboxSearch,
 } from "@/lib/inbox"
+import {
+  syncConversationsToPipelineStorage,
+  syncConversationToPipelineStorage,
+} from "@/lib/pipeline-board"
 import { toast } from "sonner"
 
 export type { Conversation, Message, Attachment }
@@ -43,6 +47,7 @@ export default function InboxPage() {
   const [mobileView, setMobileView] = useState<"list" | "chat">("list")
   const [showInspector, setShowInspector] = useState(false)
   const [newChatCounter, setNewChatCounter] = useState(1)
+  const [hasLoadedConversations, setHasLoadedConversations] = useState(false)
 
   const deferredSearchQuery = useDeferredValue(searchQuery)
 
@@ -64,11 +69,45 @@ export default function InboxPage() {
         console.warn("Failed to load conversations", error)
       }
     }
+
+    setHasLoadedConversations(true)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== "inbox_conversations" || !event.newValue) return
+
+      try {
+        const parsed = JSON.parse(event.newValue) as Conversation[]
+        if (parsed.length === 0) return
+
+        setConversations(parsed)
+        setSelectedId((currentSelectedId) => {
+          const existingConversation = parsed.find((conversation) => conversation.id === currentSelectedId)
+          return existingConversation?.id ?? parsed[0].id
+        })
+      } catch {
+        console.warn("Failed to sync conversations from storage")
+      }
+    }
+
+    window.addEventListener("storage", handleStorage)
+    return () => window.removeEventListener("storage", handleStorage)
   }, [])
 
   useEffect(() => {
     localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
   }, [conversations])
+
+  useEffect(() => {
+    if (!hasLoadedConversations) {
+      return
+    }
+
+    syncConversationsToPipelineStorage(conversations)
+  }, [conversations, hasLoadedConversations])
 
   useEffect(() => {
     if (selectedConversation) {
@@ -109,6 +148,7 @@ export default function InboxPage() {
       unread: false,
       score: 50,
       priority: "medium",
+      pipeline: "novos",
       tags: [],
       messages: [],
       status: "novo",
@@ -125,6 +165,7 @@ export default function InboxPage() {
     setActiveTab("pendentes")
     setMobileView("chat")
     setShowInspector(false)
+    syncConversationToPipelineStorage(newConversation)
     setNewChatCounter((previous) => previous + 1)
   }, [newChatCounter])
 
@@ -225,6 +266,8 @@ export default function InboxPage() {
 
   const handleUpdateProfile = useCallback(
     (conversationId: number, updates: Partial<Conversation>) => {
+      let nextConversationForPipeline: Conversation | null = null
+
       updateConversation(conversationId, (conversation) => {
         const nextName = updates.name ?? conversation.name
         const nextAvatar = nextName
@@ -234,8 +277,14 @@ export default function InboxPage() {
           .slice(0, 2)
           .toUpperCase()
 
-        return { ...conversation, ...updates, avatar: nextAvatar }
+        const nextConversation = { ...conversation, ...updates, avatar: nextAvatar }
+        nextConversationForPipeline = nextConversation
+        return nextConversation
       })
+
+      if (nextConversationForPipeline && updates.pipeline !== undefined) {
+        syncConversationToPipelineStorage(nextConversationForPipeline)
+      }
     },
     [updateConversation],
   )
