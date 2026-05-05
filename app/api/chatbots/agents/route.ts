@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  return NextResponse.json(listAgents());
+  return NextResponse.json(await listAgents());
 }
 
 export async function POST(request: Request) {
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const agent = createAgent({
+  const agent = await createAgent({
     name: name.toString().trim(),
     channel: channel.toString().trim(),
     focus: focus.toString().trim(),

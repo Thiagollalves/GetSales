@@ -7,7 +7,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const flows = listFlows();
+  const flows = await listFlows();
   return NextResponse.json(flows);
 }
 
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const flow = createFlow({
+  const flow = await createFlow({
     name: name.toString().trim(),
     trigger: trigger.toString().trim(),
     conversations: Math.max(0, conversations),
@@ -57,7 +57,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const updated = updateFlow(id, { active });
+  const updated = await updateFlow(id, { active });
   if (!updated) {
     return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 });
   }

@@ -13,6 +13,8 @@ import { Send, Plus, Users, LayoutTemplate, Loader2 } from "lucide-react";
 import { initialTemplates, initialConversations, Template } from "@/lib/mock-data";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 
+const createTemplateId = () => globalThis.crypto?.randomUUID?.() ?? `template-${Date.now()}`
+
 export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState("broadcast");
   const [selectedTag, setSelectedTag] = useState("all");
@@ -60,7 +62,7 @@ export default function CampaignsPage() {
     }
 
     const newTemplate: Template = {
-      id: Math.random().toString(),
+      id: createTemplateId(),
       name: newTemplateName.toLowerCase().replace(/\s/g, "_"),
       category: "MARKETING",
       language: "pt_BR",

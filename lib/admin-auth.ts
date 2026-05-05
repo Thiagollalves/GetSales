@@ -6,6 +6,10 @@ const FALLBACK_DEV_ADMIN_USERNAME = "admin"
 const FALLBACK_DEV_ADMIN_PASSWORD = "123456"
 const SESSION_PREFIX = "v1"
 
+function isProductionEnvironment() {
+  return process.env.NODE_ENV === "production"
+}
+
 function timingSafeEqualStrings(expected: string, candidate: string) {
   if (!expected || !candidate || expected.length !== candidate.length) {
     return false
@@ -36,6 +40,10 @@ export function getAdminUsername() {
     return configuredUsername
   }
 
+  if (isProductionEnvironment()) {
+    return ""
+  }
+
   return FALLBACK_DEV_ADMIN_USERNAME
 }
 
@@ -45,11 +53,22 @@ export function getAdminPassword() {
     return configuredPassword
   }
 
+  if (isProductionEnvironment()) {
+    return ""
+  }
+
   return FALLBACK_DEV_ADMIN_PASSWORD
 }
 
 export function hasAdminAccessToken() {
-  return getAdminUsername().length > 0 && getAdminPassword().length > 0
+  const configuredUsername = process.env.ADMIN_ACCESS_USERNAME?.trim() ?? ""
+  const configuredPassword = process.env.ADMIN_ACCESS_TOKEN?.trim() ?? ""
+
+  if (configuredUsername && configuredPassword) {
+    return true
+  }
+
+  return !isProductionEnvironment()
 }
 
 export function getAdminAccessToken() {
@@ -71,6 +90,10 @@ export function isValidAdminCredentials(
 }
 
 export function createAdminSessionToken(username: string) {
+  if (!hasAdminAccessToken()) {
+    throw new Error("Admin access is not configured.")
+  }
+
   const normalizedUsername = normalizeCredential(username)
   if (!normalizedUsername) {
     throw new Error("Cannot create an admin session without a username.")
@@ -84,6 +107,10 @@ export function createAdminSessionToken(username: string) {
 }
 
 export function isValidAdminSessionToken(candidate: string | null | undefined) {
+  if (!hasAdminAccessToken()) {
+    return false
+  }
+
   const token = normalizeCredential(candidate)
   if (!token) {
     return false
@@ -91,7 +118,7 @@ export function isValidAdminSessionToken(candidate: string | null | undefined) {
 
   const [prefix, encodedUsername, providedSignature] = token.split(".")
   if (prefix !== SESSION_PREFIX || !encodedUsername || !providedSignature) {
-    return token === getAdminPassword()
+    return !isProductionEnvironment() && token === getAdminPassword()
   }
 
   const decodedUsername = decodeBase64Url(encodedUsername)

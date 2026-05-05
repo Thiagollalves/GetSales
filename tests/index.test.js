@@ -1,0 +1,4 @@
+import "./admin-auth.test.ts"
+import "./auth-route.test.ts"
+import "./chatbots-core.test.ts"
+import "./chatbots-storage.test.ts"

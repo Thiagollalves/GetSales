@@ -7,3 +7,5 @@ criado no V0
 - As credenciais da Meta ficam somente no servidor.
 - O webhook do WhatsApp valida `META_VERIFY_TOKEN` e `META_APP_SECRET`.
 - Para teste local, use `ADMIN_ACCESS_USERNAME=admin` e `ADMIN_ACCESS_TOKEN=123456`.
+- Execute `npm test` para validar auth e o fluxo de chatbot local.
+- O armazenamento da área de chatbots usa `supabase/migrations/20260505_chatbot_storage.sql`.
