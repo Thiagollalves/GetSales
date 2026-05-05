@@ -6,6 +6,7 @@ import { useEffect, useState } from "react"
 import {
   LayoutDashboard,
   Inbox,
+  MessagesSquare,
   GitBranch,
   Zap,
   BarChart3,
@@ -24,6 +25,7 @@ import {
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/dashboard/inbox", label: "Inbox", icon: Inbox, badge: "12" },
+  { href: "/dashboard/chat-interno", label: "Chat interno", icon: MessagesSquare },
   { href: "/dashboard/pipeline", label: "Pipeline", icon: GitBranch },
   { href: "/dashboard/contacts", label: "Contatos", icon: Users },
   { href: "/dashboard/automation", label: "Automações", icon: Zap },

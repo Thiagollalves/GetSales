@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   DndContext,
   closestCorners,
@@ -24,6 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -40,6 +42,7 @@ import {
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { notifyAction } from "@/lib/button-actions";
 import { LeadInspectorSheet, type LeadInspectorDraft } from "@/components/dashboard/pipeline/lead-inspector";
+import { buildInternalChatUrl } from "@/lib/internal-chat";
 import {
   PIPELINE_STORAGE_KEY,
   createDefaultPipelineStages,
@@ -148,6 +151,19 @@ function SortableLead({ lead, onEdit }: { lead: Lead; onEdit: (lead: Lead) => vo
             </div>
             <span className="text-xs font-semibold text-primary">{lead.score}</span>
           </div>
+
+          <div className="flex flex-wrap gap-2">
+            {lead.assignee ? (
+              <Badge variant="outline" className="rounded-full px-2 py-0.5 text-[10px] font-medium">
+                {lead.assignee}
+              </Badge>
+            ) : null}
+            {lead.tags?.slice(0, 2).map((tag) => (
+              <Badge key={tag} variant="secondary" className="rounded-full px-2 py-0.5 text-[10px] font-medium">
+                {tag}
+              </Badge>
+            ))}
+          </div>
         </div>
       </div>
     </Card>
@@ -156,6 +172,7 @@ function SortableLead({ lead, onEdit }: { lead: Lead; onEdit: (lead: Lead) => vo
 
 // --- Main Pipeline Logic ---
 export default function PipelinePage() {
+  const router = useRouter();
   const [stages, setStages] = useState<Stage[]>(initialStages);
   const [hasHydratedStages, setHasHydratedStages] = useState(false);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
@@ -282,6 +299,10 @@ export default function PipelinePage() {
       score: Number.isFinite(numericScore) ? numericScore : editingLead.score,
       channel: draft.channel,
       avatar: nextAvatar,
+      assignee: draft.assignee.trim() || editingLead.assignee,
+      department: draft.department.trim() || editingLead.department,
+      tags: draft.tags.length > 0 ? [...draft.tags] : editingLead.tags,
+      botBindings: draft.botBindings.length > 0 ? draft.botBindings.map((binding) => ({ ...binding })) : editingLead.botBindings,
     };
 
     setStages((prev) =>
@@ -315,6 +336,21 @@ export default function PipelinePage() {
     notifyAction("Lead atualizado", `${nextName} foi atualizado.`);
     setEditingLead(null);
     setEditingStageId(null);
+  };
+
+  const handleOpenInternalChat = () => {
+    const lead = editingLead ?? activeLead;
+    if (!lead) return;
+
+    router.push(
+      buildInternalChatUrl({
+        leadId: lead.id,
+        leadName: lead.name,
+        leadChannel: lead.channel,
+        leadAssignee: lead.assignee,
+        leadPipeline: stages.find((stage) => stage.id === (editingStageId ?? ""))?.title ?? editingStageId ?? undefined,
+      }),
+    );
   };
 
   const handleRenameStage = (stageId: string) => {
@@ -509,6 +545,7 @@ export default function PipelinePage() {
         stages={stages}
         onSave={handleSaveLead}
         onCancel={handleCancelEdit}
+        onOpenInternalChat={handleOpenInternalChat}
       />
 
       <DndContext

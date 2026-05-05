@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyAction } from "@/lib/button-actions";
+import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Download, FileSpreadsheet, Search, UserPlus } from "lucide-react";
 
 const CHANNEL_OPTIONS = ["whatsapp", "instagram", "telegram", "email", "webchat"] as const;
@@ -483,27 +484,47 @@ export default function ContactsPage() {
   };
 
   return (
-    <div className="flex-1 space-y-4 px-4 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
-      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">Contatos</h2>
-          <p className="mt-1 text-sm text-muted-foreground">Gerencie sua base, importe CSV e edite contatos rapidamente.</p>
-        </div>
-        <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap sm:justify-end">
-          <Button variant="outline" onClick={triggerImport} className="justify-center">
+    <WorkspaceShell
+      title="Contatos"
+      description="Gerencie sua base, importe CSV e edite contatos rapidamente."
+      actions={
+        <>
+          <Button variant="outline" onClick={triggerImport} className="justify-center rounded-full">
             <FileSpreadsheet className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Importar</span>
           </Button>
-          <Button variant="outline" onClick={handleExportContacts} className="justify-center">
+          <Button variant="outline" onClick={handleExportContacts} className="justify-center rounded-full">
             <Download className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Exportar</span>
           </Button>
-          <Button onClick={openAddDialog} className="justify-center">
+          <Button onClick={openAddDialog} className="justify-center rounded-full">
             <UserPlus className="h-4 w-4 sm:mr-2" />
             <span className="hidden sm:inline">Novo Contato</span>
           </Button>
+        </>
+      }
+      toolbar={
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="relative w-full min-w-0 max-w-none sm:max-w-xl">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nome ou tag..."
+              className="h-11 rounded-full pl-10"
+              value={searchTerm}
+              onChange={(event) => setSearchTerm(event.target.value)}
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] font-medium">
+              {contacts.length} contatos
+            </Badge>
+            <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] font-medium">
+              {filteredContacts.length} visíveis
+            </Badge>
+          </div>
         </div>
-      </div>
+      }
+    >
       <input
         ref={importInputRef}
         type="file"
@@ -511,18 +532,6 @@ export default function ContactsPage() {
         className="hidden"
         onChange={handleFileImport}
       />
-      <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-none sm:max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por nome ou tag..."
-            className="h-11 pl-9"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
-
       <div className="grid gap-3 md:hidden">
         {filteredContacts.map(contact => (
           <ContactMobileCard key={contact.id} contact={contact} onEdit={openEditDialog} />
@@ -537,7 +546,7 @@ export default function ContactsPage() {
         ) : null}
       </div>
 
-      <Card className="hidden md:block">
+      <Card className="hidden border-border/60 bg-card/90 shadow-sm md:block">
         <CardHeader>
           <CardTitle>Base de Contatos ({filteredContacts.length})</CardTitle>
         </CardHeader>
@@ -742,6 +751,6 @@ export default function ContactsPage() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </WorkspaceShell>
   );
 }

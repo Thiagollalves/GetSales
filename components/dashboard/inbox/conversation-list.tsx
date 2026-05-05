@@ -59,8 +59,8 @@ interface ConversationListProps {
   onSearchQueryChange: (value: string) => void
   activeFilter: InboxFilter
   onFilterChange: (filter: InboxFilter) => void
+  onOpenFilters: () => void
   onCreateConversation: () => void
-  onResetFilters: () => void
 }
 
 export function ConversationList({
@@ -74,8 +74,8 @@ export function ConversationList({
   onSearchQueryChange,
   activeFilter,
   onFilterChange,
+  onOpenFilters,
   onCreateConversation,
-  onResetFilters,
 }: ConversationListProps) {
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
@@ -90,8 +90,8 @@ export function ConversationList({
               variant="ghost"
               size="icon"
               className="h-9 w-9 rounded-full text-muted-foreground hover:text-foreground"
-              onClick={onResetFilters}
-              title="Limpar filtros"
+              onClick={onOpenFilters}
+              title="Abrir filtros"
             >
               <Filter className="h-4 w-4" />
             </Button>
@@ -144,8 +144,8 @@ export function ConversationList({
               variant="ghost"
               size="icon"
               className="h-10 w-10 shrink-0 rounded-full border border-border/60 bg-background/80 text-muted-foreground hover:text-foreground"
-              onClick={onResetFilters}
-              title="Limpar filtros"
+              onClick={onOpenFilters}
+              title="Abrir filtros"
             >
               <Filter className="h-4 w-4" />
             </Button>
@@ -200,8 +200,8 @@ export function ConversationList({
             <p className="mt-1 max-w-xs text-sm text-muted-foreground">
               Ajuste a busca ou os filtros para voltar a enxergar a fila.
             </p>
-            <Button variant="outline" className="mt-4 rounded-full" onClick={onResetFilters}>
-              Limpar filtros
+            <Button variant="outline" className="mt-4 rounded-full" onClick={onOpenFilters}>
+              Ajustar filtros
             </Button>
           </div>
         ) : (
