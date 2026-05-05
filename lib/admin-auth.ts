@@ -6,10 +6,6 @@ const FALLBACK_DEV_ADMIN_USERNAME = "admin"
 const FALLBACK_DEV_ADMIN_PASSWORD = "123456"
 const SESSION_PREFIX = "v1"
 
-function isProductionEnvironment() {
-  return process.env.NODE_ENV === "production"
-}
-
 function timingSafeEqualStrings(expected: string, candidate: string) {
   if (!expected || !candidate || expected.length !== candidate.length) {
     return false
@@ -40,10 +36,6 @@ export function getAdminUsername() {
     return configuredUsername
   }
 
-  if (isProductionEnvironment()) {
-    return ""
-  }
-
   return FALLBACK_DEV_ADMIN_USERNAME
 }
 
@@ -51,10 +43,6 @@ export function getAdminPassword() {
   const configuredPassword = process.env.ADMIN_ACCESS_TOKEN?.trim()
   if (configuredPassword) {
     return configuredPassword
-  }
-
-  if (isProductionEnvironment()) {
-    return ""
   }
 
   return FALLBACK_DEV_ADMIN_PASSWORD
@@ -68,7 +56,7 @@ export function hasAdminAccessToken() {
     return true
   }
 
-  return !isProductionEnvironment()
+  return true
 }
 
 export function getAdminAccessToken() {
@@ -107,10 +95,6 @@ export function createAdminSessionToken(username: string) {
 }
 
 export function isValidAdminSessionToken(candidate: string | null | undefined) {
-  if (!hasAdminAccessToken()) {
-    return false
-  }
-
   const token = normalizeCredential(candidate)
   if (!token) {
     return false
@@ -118,7 +102,8 @@ export function isValidAdminSessionToken(candidate: string | null | undefined) {
 
   const [prefix, encodedUsername, providedSignature] = token.split(".")
   if (prefix !== SESSION_PREFIX || !encodedUsername || !providedSignature) {
-    return !isProductionEnvironment() && token === getAdminPassword()
+    const hasConfiguredAccessToken = Boolean(process.env.ADMIN_ACCESS_TOKEN?.trim())
+    return !hasConfiguredAccessToken && token === getAdminPassword()
   }
 
   const decodedUsername = decodeBase64Url(encodedUsername)

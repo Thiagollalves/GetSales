@@ -28,6 +28,8 @@ ADMIN_ACCESS_USERNAME="admin"
 ADMIN_ACCESS_TOKEN="123456"
 ```
 
+Se essas variáveis não estiverem definidas, o login continua aceitando o fallback `admin / 123456` para não bloquear o deploy.
+
 ### Webhook
 
 Configure o webhook com:

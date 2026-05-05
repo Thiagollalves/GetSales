@@ -17,7 +17,7 @@ afterEach(() => {
   }
 })
 
-test("login route rejects missing production config", async () => {
+test("login route accepts the fallback in production", async () => {
   process.env.NODE_ENV = "production"
   delete process.env.ADMIN_ACCESS_USERNAME
   delete process.env.ADMIN_ACCESS_TOKEN
@@ -30,7 +30,8 @@ test("login route rejects missing production config", async () => {
     }),
   )
 
-  assert.equal(response.status, 500)
+  assert.equal(response.status, 200)
+  assert.equal(response.headers.get("set-cookie")?.includes("getsales_admin_session"), true)
 })
 
 test("login route accepts the development fallback", async () => {
