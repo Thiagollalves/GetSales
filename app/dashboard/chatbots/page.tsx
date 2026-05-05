@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Bot, MessagesSquare, Plus, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { AgentEntry, AgentStatus, FlowEntry } from "@/lib/chatbots";
+import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 
 const channelOptions = ["WhatsApp", "Instagram", "Webchat", "Email", "Telegram"];
 const agentStatusOptions: AgentStatus[] = ["Ativo", "Em teste", "Pausado"];
@@ -51,7 +52,7 @@ export default function ChatbotsPage() {
         if (canceled) return;
         setFlows(flowsData);
         setAgents(agentsData);
-      } catch (error) {
+      } catch {
         if (!canceled) {
           toast.error("Não foi possível carregar os fluxos e agentes.");
         }
@@ -100,7 +101,7 @@ export default function ChatbotsPage() {
       const updated = await response.json();
       setFlows(prev => prev.map(flow => (flow.id === id ? updated : flow)));
       toast.success(`${updated.name} ${updated.active ? "ativado" : "desativado"}`);
-    } catch (error) {
+    } catch {
       toast.error("Erro ao alternar o fluxo.");
     }
   };
@@ -121,7 +122,7 @@ export default function ChatbotsPage() {
       const updated = await response.json();
       setFlows(prev => prev.map(flow => (flow.id === flowId ? updated : flow)));
       toast.success(`Teste concluído para ${updated.name ?? target?.name ?? "fluxo"}: ${updated.lastTestScore}%`);
-    } catch (error) {
+    } catch {
       toast.error("Erro ao executar o teste.");
     }
   };
@@ -161,7 +162,7 @@ export default function ChatbotsPage() {
       setFlowTrigger("");
       setFlowConversations("150");
       setFlowActive(true);
-    } catch (error) {
+    } catch {
       toast.error("Erro ao criar o fluxo.");
     }
   };
@@ -200,7 +201,7 @@ export default function ChatbotsPage() {
       setAgentFocus("");
       setAgentChannel(channelOptions[0]);
       setAgentStatus("Ativo");
-    } catch (error) {
+    } catch {
       toast.error("Erro ao criar o agente.");
     }
   };
@@ -214,20 +215,31 @@ export default function ChatbotsPage() {
   }
 
   return (
-    <div className="flex-1 space-y-6 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Chatbots & Automação</h2>
-          <p className="text-sm text-muted-foreground">Crie fluxos e agentes que respondam automaticamente ao cliente.</p>
-        </div>
-        <Button onClick={() => setIsAgentDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" /> Novo Agente
+    <WorkspaceShell
+      title="Chatbots & Automação"
+      description="Crie fluxos e agentes que respondam automaticamente ao cliente."
+      actions={
+        <Button onClick={() => setIsAgentDialogOpen(true)} className="rounded-full">
+          <Plus className="mr-2 h-4 w-4" /> Novo agente
         </Button>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      }
+      toolbar={
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary" className="rounded-full px-3 py-1 text-[11px] font-medium">
+            {flows.filter((flow) => flow.active).length} fluxos ativos
+          </Badge>
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] font-medium">
+            {agents.length} agentes
+          </Badge>
+          <Badge variant="outline" className="rounded-full px-3 py-1 text-[11px] font-medium">
+            {bestFlows.length} fluxos em destaque
+          </Badge>
+        </div>
+      }
+    >
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {flows.map(flow => (
-          <Card key={flow.id} className={!flow.active ? "opacity-80" : ""}>
+          <Card key={flow.id} className={`border-border/60 bg-card/90 shadow-sm ${!flow.active ? "opacity-80" : ""}`}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="flex items-center gap-2">
                 <Bot className="h-4 w-4" />
@@ -257,7 +269,7 @@ export default function ChatbotsPage() {
                 </Badge>
               )}
             </CardContent>
-            <CardFooter className="flex flex-col gap-2 border-t pt-4 bg-muted/20">
+            <CardFooter className="flex flex-col gap-2 border-t border-border/60 bg-muted/20 pt-4">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <p>Teste em andamento</p>
                 <span className="font-semibold">{flow.lastTestScore ?? "—"}%</span>
@@ -270,16 +282,16 @@ export default function ChatbotsPage() {
             </CardFooter>
           </Card>
         ))}
-        <Card
-          className="flex cursor-pointer flex-col items-center justify-center border-dashed text-muted-foreground hover:bg-muted/50 transition-colors min-h-[170px]"
-          onClick={() => setIsFlowDialogOpen(true)}
-        >
+          <Card
+            className="flex min-h-[170px] cursor-pointer flex-col items-center justify-center border-dashed text-muted-foreground transition-colors hover:bg-muted/50"
+            onClick={() => setIsFlowDialogOpen(true)}
+          >
           <Plus className="h-8 w-8 mb-2" />
           <p className="font-medium">Criar novo fluxo</p>
         </Card>
       </div>
 
-      <Card>
+      <Card className="border-border/60 bg-card/90 shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>Testes e Melhores Fluxos</CardTitle>
@@ -293,15 +305,15 @@ export default function ChatbotsPage() {
                 <h3 className="font-semibold">{flow.name}</h3>
                 <p className="text-sm text-muted-foreground">{flow.trigger}</p>
               </div>
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-emerald-500" />
-                <div className="text-right">
-                  <p className="text-sm font-semibold">{flow.lastTestScore ?? flow.conversations}%</p>
-                  <p className="text-xs text-muted-foreground">{flow.lastTestStatus ?? "Sem teste"}</p>
-                </div>
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <div className="text-right">
+                <p className="text-sm font-semibold">{flow.lastTestScore ?? flow.conversations}%</p>
+                <p className="text-xs text-muted-foreground">{flow.lastTestStatus ?? "Sem teste"}</p>
               </div>
             </div>
-          ))}
+          </div>
+        ))}
         </CardContent>
       </Card>
 
@@ -313,9 +325,9 @@ export default function ChatbotsPage() {
         {agents.length === 0 ? (
           <Card className="border-dashed text-center text-muted-foreground">Nenhum agente cadastrado ainda.</Card>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {agents.map(agent => (
-              <Card key={agent.id} className="border">
+              <Card key={agent.id} className="border-border/60 bg-card/90 shadow-sm">
                 <CardHeader className="flex items-center justify-between p-4 pb-2">
                   <div>
                     <CardTitle className="text-base">{agent.name}</CardTitle>
@@ -454,6 +466,6 @@ export default function ChatbotsPage() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </WorkspaceShell>
   );
 }

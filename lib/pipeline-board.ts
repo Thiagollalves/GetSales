@@ -1,4 +1,11 @@
-import type { Conversation } from "@/lib/mock-data"
+import type {
+  Conversation,
+  LeadBotBinding,
+  LeadCustomField,
+  LeadMediaItem,
+  LeadTimelineItem,
+  InternalNote,
+} from "@/lib/mock-data"
 
 export type PipelineStageId = "novos" | "qualificacao" | "proposta" | "negociacao" | "fechamento"
 
@@ -12,6 +19,21 @@ export interface PipelineLead {
   score: number
   avatar: string
   sourceConversationId?: number
+  assignee?: string
+  department?: string
+  tags?: string[]
+  internalNotes?: InternalNote[]
+  customFields?: LeadCustomField[]
+  media?: LeadMediaItem[]
+  botBindings?: LeadBotBinding[]
+  timeline?: LeadTimelineItem[]
+  nextMeeting?: string
+  scheduledAt?: string
+  scheduledTime?: string
+  scheduledBy?: string
+  scheduledMessage?: string
+  closedReason?: string
+  closedAt?: string
 }
 
 export interface PipelineStage {
@@ -225,6 +247,21 @@ export function buildPipelineLeadFromConversation(conversation: Conversation): P
     score: conversation.score,
     avatar: conversation.avatar || normalizeInitials(conversation.name),
     sourceConversationId: conversation.id,
+    assignee: conversation.assignee,
+    department: conversation.department,
+    tags: [...conversation.tags],
+    internalNotes: conversation.internalNotes ? conversation.internalNotes.map((note) => ({ ...note })) : undefined,
+    customFields: conversation.customFields ? conversation.customFields.map((field) => ({ ...field })) : undefined,
+    media: conversation.media ? conversation.media.map((item) => ({ ...item })) : undefined,
+    botBindings: conversation.botBindings ? conversation.botBindings.map((binding) => ({ ...binding })) : undefined,
+    timeline: conversation.timeline ? conversation.timeline.map((item) => ({ ...item })) : undefined,
+    nextMeeting: conversation.nextMeeting,
+    scheduledAt: conversation.scheduledAt,
+    scheduledTime: conversation.scheduledTime,
+    scheduledBy: conversation.scheduledBy,
+    scheduledMessage: conversation.scheduledMessage,
+    closedReason: conversation.closedReason,
+    closedAt: conversation.closedAt,
   }
 }
 
@@ -334,7 +371,22 @@ export function syncInboxConversationFromPipelineLead(
             priority: getDerivedPriorityFromScore(lead.score),
             time: lead.lastContact,
             pipeline: normalizedStageId ?? pipeline ?? undefined,
-          }
+            assignee: lead.assignee ?? conversation.assignee,
+            department: lead.department ?? conversation.department,
+            tags: lead.tags ?? conversation.tags,
+            internalNotes: lead.internalNotes ?? conversation.internalNotes,
+            customFields: lead.customFields ?? conversation.customFields,
+            media: lead.media ?? conversation.media,
+            botBindings: lead.botBindings ?? conversation.botBindings,
+            timeline: lead.timeline ?? conversation.timeline,
+            nextMeeting: lead.nextMeeting ?? conversation.nextMeeting,
+            scheduledAt: lead.scheduledAt ?? conversation.scheduledAt,
+            scheduledTime: lead.scheduledTime ?? conversation.scheduledTime,
+            scheduledBy: lead.scheduledBy ?? conversation.scheduledBy,
+            scheduledMessage: lead.scheduledMessage ?? conversation.scheduledMessage,
+            closedReason: lead.closedReason ?? conversation.closedReason,
+            closedAt: lead.closedAt ?? conversation.closedAt,
+        }
         : conversation,
     )
 

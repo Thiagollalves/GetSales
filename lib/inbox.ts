@@ -4,6 +4,15 @@ export type InboxTab = "ativos" | "pendentes" | "fechados"
 
 export type InboxFilter = "todos" | "com-notas" | "alta-prioridade" | "sem-resposta"
 
+export interface InboxDrawerFilters {
+  departmentQuery: string
+  leadStatus: "all" | Conversation["status"]
+  tagQuery: string
+  onlyUnread: boolean
+  onlyWithNotes: boolean
+  onlyBotFlow: boolean
+}
+
 export function getInboxTab(conversation: Conversation): InboxTab {
   switch (conversation.status) {
     case "resolvido":
@@ -85,6 +94,7 @@ export function matchesInboxSearch(conversation: Conversation, searchQuery: stri
     conversation.name,
     conversation.lastMessage,
     conversation.assignee ?? "",
+    conversation.department ?? "",
     conversation.email ?? "",
     conversation.location ?? "",
     conversation.customerSince ?? "",
@@ -107,4 +117,38 @@ export function matchesInboxFilter(conversation: Conversation, filter: InboxFilt
     default:
       return true
   }
+}
+
+export function matchesInboxDrawerFilters(conversation: Conversation, filters: InboxDrawerFilters) {
+  const departmentQuery = filters.departmentQuery.trim().toLowerCase()
+  const tagQuery = filters.tagQuery.trim().toLowerCase()
+
+  if (filters.leadStatus !== "all" && conversation.status !== filters.leadStatus) {
+    return false
+  }
+
+  if (departmentQuery && !(conversation.department ?? conversation.assignee ?? "").toLowerCase().includes(departmentQuery)) {
+    return false
+  }
+
+  if (tagQuery && !conversation.tags.some((tag) => tag.toLowerCase().includes(tagQuery))) {
+    return false
+  }
+
+  if (filters.onlyUnread && !conversation.unread) {
+    return false
+  }
+
+  if (filters.onlyWithNotes && (conversation.internalNotes?.length ?? 0) === 0) {
+    return false
+  }
+
+  if (filters.onlyBotFlow) {
+    const hasBotMessage = conversation.messages.some((message) => message.sender === "bot")
+    if (!hasBotMessage && conversation.channel !== "webchat") {
+      return false
+    }
+  }
+
+  return true
 }

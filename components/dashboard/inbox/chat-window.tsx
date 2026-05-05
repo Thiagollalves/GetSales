@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type ChangeEvent } from "react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import type { Attachment, Conversation, Message } from "@/lib/mock-data"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ import {
   ImageIcon,
   Mic,
   MapPin,
+  MessagesSquare,
   Paperclip,
   PanelRightOpen,
   MoreHorizontal,
@@ -37,6 +38,8 @@ import {
   getPriorityLabel,
   getPriorityTone,
 } from "@/lib/inbox"
+import { getPipelineStageLabel } from "@/lib/pipeline-board"
+import { LeadCloseTicketModal, type LeadCloseTicketPayload } from "@/components/dashboard/inspector/lead-operational-modals"
 
 const channelLabels: Record<string, string> = {
   whatsapp: "WhatsApp",
@@ -59,12 +62,13 @@ interface ChatWindowProps {
   onBackToList?: () => void
   onToggleInspector: () => void
   onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
-  onCloseConversation?: () => void
+  onCloseConversation?: (payload: LeadCloseTicketPayload) => void
   onReturnConversation?: () => void
   onTransferConversation?: () => void
   onCreateConversation?: () => void
   onSearchConversation?: () => void
   onOpenShortcuts?: () => void
+  onOpenInternalChat?: () => void
   isInspectorOpen: boolean
 }
 
@@ -79,11 +83,14 @@ export function ChatWindow({
   onCreateConversation,
   onSearchConversation,
   onOpenShortcuts,
+  onOpenInternalChat,
   isInspectorOpen,
 }: ChatWindowProps) {
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
+  const [isContextExpanded, setIsContextExpanded] = useState(true)
+  const [isCloseTicketOpen, setIsCloseTicketOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const mediaInputRef = useRef<HTMLInputElement>(null)
@@ -98,6 +105,8 @@ export function ChatWindow({
     setMessage("")
     setShowEmojiPicker(false)
     setIsRecording(false)
+    setIsContextExpanded(true)
+    setIsCloseTicketOpen(false)
   }, [conversation?.id])
 
   const handleSend = () => {
@@ -208,6 +217,27 @@ export function ChatWindow({
   }
 
   const priority = getConversationPriority(conversation)
+  const headerSummaryItems = useMemo(
+    () => [
+      {
+        label: "Responsável",
+        value: conversation.assignee ?? "Sem responsável",
+      },
+      {
+        label: "Canal",
+        value: channelLabels[conversation.channel],
+      },
+      {
+        label: "Pipeline",
+        value: getPipelineStageLabel(conversation.pipeline) || conversation.pipeline || "Sem etapa",
+      },
+      {
+        label: "Cliente desde",
+        value: conversation.customerSince ?? "Agora",
+      },
+    ],
+    [conversation.assignee, conversation.channel, conversation.customerSince, conversation.pipeline],
+  )
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
@@ -256,91 +286,167 @@ export function ChatWindow({
                   {isInspectorOpen ? "Fechar inspector" : "Abrir inspector"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => onCloseConversation?.()}>Fechar atendimento</DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsCloseTicketOpen(true)}>Fechar atendimento</DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onReturnConversation?.()}>Retornar para ativos</DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={() => onTransferConversation?.()}>Transferir atendimento</DropdownMenuItem>
+                {onOpenInternalChat ? (
+                  <DropdownMenuItem onSelect={() => onOpenInternalChat()}>Abrir chat interno</DropdownMenuItem>
+                ) : null}
                 <DropdownMenuItem onSelect={() => onSearchConversation?.()}>Buscar na conversa</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </div>
 
-        <div className="hidden flex-col gap-3 xl:flex xl:flex-row xl:items-start xl:justify-between">
-          <div className="flex min-w-0 items-start gap-3">
-            <div className="relative shrink-0 pt-0.5">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-sm font-semibold text-foreground sm:h-12 sm:w-12 sm:text-base">
-                {conversation.avatar}
+        <div className="hidden flex-col gap-3 xl:flex">
+          <div className="flex items-start justify-between gap-3">
+            <button
+              type="button"
+              className="group flex min-w-0 flex-1 items-start gap-3 rounded-[18px] px-1 py-1 text-left transition-colors hover:bg-background/60"
+              onClick={() => setIsContextExpanded((previous) => !previous)}
+              aria-expanded={isContextExpanded}
+              aria-label={`${isContextExpanded ? "Recolher" : "Expandir"} detalhes da conversa`}
+            >
+              <div className="relative shrink-0 pt-0.5">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-secondary text-sm font-semibold text-foreground sm:h-12 sm:w-12 sm:text-base">
+                  {conversation.avatar}
+                </div>
+                <div
+                  className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full ${channelColors[conversation.channel]} border-2 border-background`}
+                />
               </div>
-              <div
-                className={`absolute -bottom-0.5 -right-0.5 h-4 w-4 rounded-full ${channelColors[conversation.channel]} border-2 border-background`}
+
+              <div className="min-w-0 space-y-2">
+                <div className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+                    Conversa ativa
+                  </p>
+                  <h3 className="truncate text-lg font-semibold text-foreground sm:text-xl">{conversation.name}</h3>
+                  <p className="truncate text-sm text-muted-foreground">
+                    {conversation.assignee ?? "Sem responsável"} • {channelLabels[conversation.channel]} • Cliente desde{" "}
+                    {conversation.customerSince ?? "agora"}
+                  </p>
+                </div>
+
+                <div className="hidden flex-wrap gap-2 sm:flex">
+                  <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                    {getConversationStatusLabel(conversation)}
+                  </Badge>
+                  <Badge
+                    variant={getPriorityTone(priority)}
+                    className="rounded-full px-2.5 py-1 text-[11px] font-medium"
+                  >
+                    {getPriorityLabel(priority)}
+                  </Badge>
+                  <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                    Score {conversation.score}
+                  </Badge>
+                  <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
+                    {channelLabels[conversation.channel]}
+                  </Badge>
+                </div>
+              </div>
+
+              <ChevronDown
+                className={`ml-1 mt-1 hidden h-4 w-4 shrink-0 text-muted-foreground transition-transform xl:inline-flex ${
+                  isContextExpanded ? "rotate-180" : ""
+                }`}
               />
-            </div>
+            </button>
 
-            <div className="min-w-0 space-y-2">
-              <div className="space-y-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-                  Conversa ativa
-                </p>
-                <h3 className="truncate text-lg font-semibold text-foreground sm:text-xl">{conversation.name}</h3>
-                <p className="truncate text-sm text-muted-foreground">
-                  {conversation.assignee ?? "Sem responsável"} • {channelLabels[conversation.channel]} • Cliente desde{" "}
-                  {conversation.customerSince ?? "agora"}
-                </p>
-              </div>
-
-              <div className="hidden flex-wrap gap-2 sm:flex">
-                <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
-                  {getConversationStatusLabel(conversation)}
-                </Badge>
-                <Badge variant={getPriorityTone(priority)} className="rounded-full px-2.5 py-1 text-[11px] font-medium">
-                  {getPriorityLabel(priority)}
-                </Badge>
-                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
-                  Score {conversation.score}
-                </Badge>
-                <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
-                  {channelLabels[conversation.channel]}
-                </Badge>
-              </div>
+            <div className="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-muted-foreground"
+                onClick={onSearchConversation}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+              {onOpenInternalChat ? (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-10 w-10 rounded-full text-muted-foreground"
+                  onClick={onOpenInternalChat}
+                  title="Abrir chat interno"
+                >
+                  <MessagesSquare className="h-4 w-4" />
+                </Button>
+              ) : null}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm"
+                onClick={() => setIsCloseTicketOpen(true)}
+              >
+                <span className="sm:hidden">Fechar</span>
+                <span className="hidden sm:inline">Fechar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm"
+                onClick={onReturnConversation}
+              >
+                <span className="sm:hidden">Retornar</span>
+                <span className="hidden sm:inline">Retornar</span>
+              </Button>
+              <Button
+                size="sm"
+                className="h-10 rounded-full px-3 text-xs shadow-sm shadow-primary/20 sm:px-4 sm:text-sm"
+                onClick={onTransferConversation}
+              >
+                <span className="sm:hidden">Transferir</span>
+                <span className="hidden sm:inline">Transferir</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="hidden h-10 w-10 rounded-full text-muted-foreground xl:inline-flex"
+                onClick={onToggleInspector}
+              >
+                <PanelRightOpen className={`h-4 w-4 transition-transform ${isInspectorOpen ? "rotate-180" : ""}`} />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full text-muted-foreground"
+                onClick={onOpenShortcuts}
+              >
+                <Zap className="h-4 w-4" />
+              </Button>
             </div>
           </div>
 
-          <div className="hidden flex-wrap items-center gap-2 xl:flex xl:justify-end">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-10 w-10 rounded-full text-muted-foreground"
-              onClick={onSearchConversation}
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm" onClick={onCloseConversation}>
-              <span className="sm:hidden">Fechar</span>
-              <span className="hidden sm:inline">Fechar</span>
-            </Button>
-            <Button variant="outline" size="sm" className="h-10 rounded-full bg-transparent px-3 text-xs sm:px-4 sm:text-sm" onClick={onReturnConversation}>
-              <span className="sm:hidden">Retornar</span>
-              <span className="hidden sm:inline">Retornar</span>
-            </Button>
-            <Button size="sm" className="h-10 rounded-full px-3 text-xs shadow-sm shadow-primary/20 sm:px-4 sm:text-sm" onClick={onTransferConversation}>
-              <span className="sm:hidden">Transferir</span>
-              <span className="hidden sm:inline">Transferir</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="hidden h-10 w-10 rounded-full text-muted-foreground xl:inline-flex"
-              onClick={onToggleInspector}
-            >
-              <PanelRightOpen className={`h-4 w-4 transition-transform ${isInspectorOpen ? "rotate-180" : ""}`} />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-muted-foreground" onClick={onOpenShortcuts}>
-              <Zap className="h-4 w-4" />
-            </Button>
+          <div
+            className={`overflow-hidden transition-[max-height,opacity,margin-top] duration-300 ease-out ${
+              isContextExpanded ? "mt-0 max-h-40 opacity-100" : "mt-0 max-h-0 opacity-0"
+            }`}
+          >
+            <div className="flex flex-wrap gap-2 pr-1">
+              {headerSummaryItems.map((item) => (
+                <div
+                  key={item.label}
+                  className="min-w-[10rem] flex-1 basis-[10rem] rounded-[18px] border border-border/60 bg-background/80 px-3 py-2 shadow-sm"
+                >
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                    {item.label}
+                  </p>
+                  <p className="mt-1 truncate text-sm font-medium text-foreground">{item.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </header>
+
+      <LeadCloseTicketModal
+        open={isCloseTicketOpen}
+        onOpenChange={setIsCloseTicketOpen}
+        onConfirm={(payload) => onCloseConversation?.(payload)}
+      />
 
       <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-2 py-3 sm:px-5 sm:py-6">
         <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:gap-4">

@@ -1,20 +1,26 @@
 "use client"
 
 import { useCallback, useDeferredValue, useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { ChatWindow } from "@/components/dashboard/inbox/chat-window"
 import { ContactProfile } from "@/components/dashboard/inbox/contact-profile"
+import { InboxFiltersSheet, type InboxDrawerFilters } from "@/components/dashboard/inbox/inbox-filters-sheet"
 import { ConversationList } from "@/components/dashboard/inbox/conversation-list"
+import { NewConversationDialog, type NewConversationDraft } from "@/components/dashboard/inbox/new-conversation-dialog"
+import { useIsMobile } from "@/components/ui/use-mobile"
 import {
   initialConversations,
   type Attachment,
   type Conversation,
   type Message,
+  type LeadTimelineItem,
 } from "@/lib/mock-data"
 import {
   getConversationPriority,
   getInboxTab,
   type InboxFilter,
   type InboxTab,
+  matchesInboxDrawerFilters,
   matchesInboxFilter,
   matchesInboxSearch,
 } from "@/lib/inbox"
@@ -22,6 +28,8 @@ import {
   syncConversationsToPipelineStorage,
   syncConversationToPipelineStorage,
 } from "@/lib/pipeline-board"
+import { buildInternalChatUrl } from "@/lib/internal-chat"
+import { type LeadCloseTicketPayload, type LeadSchedulePayload } from "@/components/dashboard/inspector/lead-operational-modals"
 import { toast } from "sonner"
 
 export type { Conversation, Message, Attachment }
@@ -39,6 +47,7 @@ function getDerivedPriority(score: number) {
 }
 
 export default function InboxPage() {
+  const router = useRouter()
   const [conversations, setConversations] = useState<Conversation[]>(initialConversations)
   const [selectedId, setSelectedId] = useState<number | null>(initialConversations[0]?.id ?? null)
   const [activeTab, setActiveTab] = useState<InboxTab>("ativos")
@@ -46,12 +55,35 @@ export default function InboxPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [mobileView, setMobileView] = useState<"list" | "chat">("list")
   const [showInspector, setShowInspector] = useState(false)
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false)
+  const [isNewConversationOpen, setIsNewConversationOpen] = useState(false)
+  const [drawerFilters, setDrawerFilters] = useState<InboxDrawerFilters>({
+    departmentQuery: "",
+    leadStatus: "all",
+    tagQuery: "",
+    onlyUnread: false,
+    onlyWithNotes: false,
+    onlyBotFlow: false,
+  })
+  const [appliedDrawerFilters, setAppliedDrawerFilters] = useState<InboxDrawerFilters>({
+    departmentQuery: "",
+    leadStatus: "all",
+    tagQuery: "",
+    onlyUnread: false,
+    onlyWithNotes: false,
+    onlyBotFlow: false,
+  })
   const [newChatCounter, setNewChatCounter] = useState(1)
   const [hasLoadedConversations, setHasLoadedConversations] = useState(false)
+  const isMobile = useIsMobile()
 
   const deferredSearchQuery = useDeferredValue(searchQuery)
 
   const selectedConversation = conversations.find((conversation) => conversation.id === selectedId) || null
+
+  useEffect(() => {
+    setShowInspector(!isMobile)
+  }, [isMobile])
 
   useEffect(() => {
     const stored = localStorage.getItem("inbox_conversations")
@@ -98,6 +130,14 @@ export default function InboxPage() {
   }, [])
 
   useEffect(() => {
+    const handleOpenNewConversation = () => setIsNewConversationOpen(true)
+
+    window.addEventListener("dashboard:new-conversation", handleOpenNewConversation as EventListener)
+    return () =>
+      window.removeEventListener("dashboard:new-conversation", handleOpenNewConversation as EventListener)
+  }, [])
+
+  useEffect(() => {
     localStorage.setItem("inbox_conversations", JSON.stringify(conversations))
   }, [conversations])
 
@@ -129,45 +169,91 @@ export default function InboxPage() {
   )
 
   const handleCreateConversation = useCallback(() => {
-    const counter = newChatCounter
-    const name = `Novo contato ${counter}`
-    const avatar = name
-      .split(" ")
-      .map((part) => part[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase()
+    setIsNewConversationOpen(true)
+  }, [])
 
-    const newConversation: Conversation = {
-      id: Date.now(),
-      name,
-      avatar,
-      channel: "whatsapp",
-      lastMessage: "Nova conversa iniciada",
-      time: "Agora",
-      unread: false,
-      score: 50,
-      priority: "medium",
-      pipeline: "novos",
-      tags: [],
-      messages: [],
-      status: "novo",
-      assignee: "Atendimento",
-      phone: "",
-      email: "",
-      location: "",
-      customerSince: "Agora",
-      internalNotes: [],
-    }
+  const handleOpenInternalChat = useCallback(() => {
+    if (!selectedConversation) return
 
-    setConversations((previous) => [newConversation, ...previous])
-    setSelectedId(newConversation.id)
-    setActiveTab("pendentes")
-    setMobileView("chat")
-    setShowInspector(false)
-    syncConversationToPipelineStorage(newConversation)
-    setNewChatCounter((previous) => previous + 1)
-  }, [newChatCounter])
+    router.push(
+      buildInternalChatUrl({
+        leadId: selectedConversation.id,
+        leadName: selectedConversation.name,
+        leadChannel: selectedConversation.channel,
+        leadAssignee: selectedConversation.assignee,
+        leadPipeline: selectedConversation.pipeline,
+      }),
+    )
+  }, [router, selectedConversation])
+
+  const handleSubmitNewConversation = useCallback(
+    (draft: NewConversationDraft) => {
+      const counter = newChatCounter
+      const name = draft.name.trim() || `Novo contato ${counter}`
+      const avatar = name
+        .split(" ")
+        .map((part) => part[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+      const nextStatus = draft.status
+      const nextPipeline = nextStatus === "resolvido" ? "fechamento" : nextStatus === "ativo" ? "qualificacao" : "novos"
+      const nextMessage = draft.message.trim()
+
+      const newConversation: Conversation = {
+        id: Date.now(),
+        name,
+        avatar,
+        channel: draft.channel,
+        lastMessage: nextMessage || "Nova conversa iniciada",
+        time: "Agora",
+        unread: false,
+        score: 50,
+        priority: "medium",
+        pipeline: nextPipeline,
+        tags: draft.tags,
+        department: draft.department,
+        messages: nextMessage
+          ? [
+              {
+                id: 1,
+                content: nextMessage,
+                sender: "agent",
+                time: "Agora",
+                status: "sent",
+              },
+            ]
+          : [],
+        status: nextStatus,
+        assignee: draft.department || "Atendimento",
+        phone: "",
+        email: "",
+        location: "",
+        customerSince: "Agora",
+        scheduledAt: undefined,
+        scheduledTime: undefined,
+        scheduledBy: undefined,
+        scheduledMessage: undefined,
+        closedReason: undefined,
+        closedAt: undefined,
+        internalNotes: [],
+        customFields: [],
+        media: [],
+        botBindings: [],
+        timeline: [],
+      }
+
+      setConversations((previous) => [newConversation, ...previous])
+      setSelectedId(newConversation.id)
+      setActiveTab(nextStatus === "resolvido" ? "fechados" : nextStatus === "novo" ? "pendentes" : "ativos")
+      setMobileView("chat")
+      setShowInspector(false)
+      syncConversationToPipelineStorage(newConversation)
+      setNewChatCounter((previous) => previous + 1)
+      toast.success("Novo atendimento iniciado.")
+    },
+    [newChatCounter],
+  )
 
   const handleSelectConversation = useCallback((conversation: Conversation) => {
     setSelectedId(conversation.id)
@@ -204,6 +290,13 @@ export default function InboxPage() {
           time: "Agora",
           unread: false,
         }
+      })
+      syncConversationToPipelineStorage({
+        ...selectedConversation,
+        messages: [...selectedConversation.messages, newMessage],
+        lastMessage: messageText || selectedConversation.lastMessage,
+        time: "Agora",
+        unread: false,
       })
 
       if (selectedConversation.channel === "whatsapp" && text) {
@@ -249,8 +342,11 @@ export default function InboxPage() {
   const handleUpdateTags = useCallback(
     (conversationId: number, tags: string[]) => {
       updateConversation(conversationId, (conversation) => ({ ...conversation, tags }))
+      if (selectedConversation?.id === conversationId) {
+        syncConversationToPipelineStorage({ ...selectedConversation, tags })
+      }
     },
-    [updateConversation],
+    [selectedConversation, updateConversation],
   )
 
   const handleUpdateScore = useCallback(
@@ -260,14 +356,19 @@ export default function InboxPage() {
         score,
         priority: getDerivedPriority(score),
       }))
+      if (selectedConversation?.id === conversationId) {
+        syncConversationToPipelineStorage({
+          ...selectedConversation,
+          score,
+          priority: getDerivedPriority(score),
+        })
+      }
     },
-    [updateConversation],
+    [selectedConversation, updateConversation],
   )
 
   const handleUpdateProfile = useCallback(
     (conversationId: number, updates: Partial<Conversation>) => {
-      let nextConversationForPipeline: Conversation | null = null
-
       updateConversation(conversationId, (conversation) => {
         const nextName = updates.name ?? conversation.name
         const nextAvatar = nextName
@@ -277,33 +378,109 @@ export default function InboxPage() {
           .slice(0, 2)
           .toUpperCase()
 
-        const nextConversation = { ...conversation, ...updates, avatar: nextAvatar }
-        nextConversationForPipeline = nextConversation
-        return nextConversation
+        return { ...conversation, ...updates, avatar: nextAvatar }
       })
 
-      if (nextConversationForPipeline && updates.pipeline !== undefined) {
-        syncConversationToPipelineStorage(nextConversationForPipeline)
+      if (selectedConversation?.id === conversationId) {
+        const nextName = updates.name ?? selectedConversation.name
+        const nextAvatar = nextName
+          .split(" ")
+          .map((part) => part[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase()
+
+        syncConversationToPipelineStorage({
+          ...selectedConversation,
+          ...updates,
+          avatar: nextAvatar,
+          tags: updates.tags ?? selectedConversation.tags,
+          customFields: updates.customFields ?? selectedConversation.customFields,
+          media: updates.media ?? selectedConversation.media,
+          botBindings: updates.botBindings ?? selectedConversation.botBindings,
+          timeline: updates.timeline ?? selectedConversation.timeline,
+          internalNotes: updates.internalNotes ?? selectedConversation.internalNotes,
+        })
       }
     },
-    [updateConversation],
+    [selectedConversation, updateConversation],
   )
 
   const handleScheduleMeeting = useCallback(
-    (conversationId: number, nextMeeting: string) => {
-      updateConversation(conversationId, (conversation) => ({ ...conversation, nextMeeting }))
+    (conversationId: number, nextMeeting: LeadSchedulePayload) => {
+      const scheduledMessage = nextMeeting.message.trim()
+      const timelineItem: LeadTimelineItem = {
+        id: Date.now(),
+        kind: "agendamento",
+        title: "Mensagem agendada",
+        description: [
+          scheduledMessage || "Mensagem agendada",
+          nextMeeting.assignee,
+          nextMeeting.time,
+        ]
+          .filter(Boolean)
+          .join(" • "),
+        time: nextMeeting.time || "Agora",
+      }
+
+      updateConversation(conversationId, (conversation) => ({
+        ...conversation,
+        nextMeeting: nextMeeting.date,
+        scheduledAt: nextMeeting.date,
+        scheduledTime: nextMeeting.time,
+        scheduledBy: nextMeeting.assignee,
+        scheduledMessage,
+        timeline: [...(conversation.timeline ?? []), timelineItem],
+      }))
+      if (selectedConversation?.id === conversationId) {
+        syncConversationToPipelineStorage({
+          ...selectedConversation,
+          nextMeeting: nextMeeting.date,
+          scheduledAt: nextMeeting.date,
+          scheduledTime: nextMeeting.time,
+          scheduledBy: nextMeeting.assignee,
+          scheduledMessage,
+          timeline: [...(selectedConversation.timeline ?? []), timelineItem],
+        })
+      }
     },
-    [updateConversation],
+    [selectedConversation, updateConversation],
   )
 
-  const handleCloseConversation = useCallback(() => {
+  const handleCloseConversation = useCallback((payload: LeadCloseTicketPayload) => {
     if (!selectedConversation) return
+
+    const closedAt = new Date().toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+    const timelineItem: LeadTimelineItem = {
+      id: Date.now(),
+      kind: "fechamento",
+      title: "Ticket fechado",
+      description: [payload.reason, payload.note.trim()].filter(Boolean).join(" • "),
+      time: closedAt,
+    }
 
     updateConversation(selectedConversation.id, (conversation) => ({
       ...conversation,
       status: "resolvido",
       unread: false,
+      closedReason: payload.reason,
+      closedAt,
+      timeline: [...(conversation.timeline ?? []), timelineItem],
     }))
+    syncConversationToPipelineStorage({
+      ...selectedConversation,
+      status: "resolvido",
+      unread: false,
+      closedReason: payload.reason,
+      closedAt,
+      timeline: [...(selectedConversation.timeline ?? []), timelineItem],
+    })
     setActiveTab("fechados")
     toast.success("Atendimento fechado.")
   }, [selectedConversation, updateConversation])
@@ -315,7 +492,16 @@ export default function InboxPage() {
       ...conversation,
       status: "ativo",
       unread: false,
+      closedReason: undefined,
+      closedAt: undefined,
     }))
+    syncConversationToPipelineStorage({
+      ...selectedConversation,
+      status: "ativo",
+      unread: false,
+      closedReason: undefined,
+      closedAt: undefined,
+    })
     setActiveTab("ativos")
     toast.success("Atendimento retornado para ativos.")
   }, [selectedConversation, updateConversation])
@@ -335,6 +521,12 @@ export default function InboxPage() {
       status: "ativo",
       unread: false,
     }))
+    syncConversationToPipelineStorage({
+      ...selectedConversation,
+      assignee: trimmedAssignee,
+      status: "ativo",
+      unread: false,
+    })
     setActiveTab("ativos")
     toast.success(`Atendimento transferido para ${trimmedAssignee}.`)
   }, [selectedConversation, updateConversation])
@@ -348,6 +540,7 @@ export default function InboxPage() {
   const visibleConversations = conversations
     .filter((conversation) => getInboxTab(conversation) === activeTab)
     .filter((conversation) => matchesInboxFilter(conversation, activeFilter))
+    .filter((conversation) => matchesInboxDrawerFilters(conversation, appliedDrawerFilters))
     .filter((conversation) => matchesInboxSearch(conversation, deferredSearchQuery))
     .sort((left, right) => {
       if (left.unread !== right.unread) {
@@ -363,12 +556,16 @@ export default function InboxPage() {
       return right.score - left.score
     })
 
+  const desktopGridColumns = showInspector
+    ? "minmax(18rem,22rem) minmax(0,1fr) minmax(24rem,28rem)"
+    : "minmax(18rem,22rem) minmax(0,1fr)"
+
   return (
     <div className="h-[calc(100dvh-4rem)] overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.9),_rgba(246,242,233,0.92)_40%,_rgba(239,234,224,0.96)_100%)] px-3 py-3 sm:px-4 lg:px-6 lg:py-4">
       <div className="mx-auto flex h-full w-full max-w-[1880px] min-h-0 flex-col">
         <div
           className="flex min-h-0 flex-1 flex-col gap-3 xl:grid"
-          style={{ gridTemplateColumns: "minmax(18rem, 22rem) minmax(0, 1fr)" }}
+          style={{ gridTemplateColumns: desktopGridColumns }}
         >
           <div className={`${mobileView === "list" ? "flex" : "hidden"} min-h-0 xl:flex`}>
             <ConversationList
@@ -382,11 +579,8 @@ export default function InboxPage() {
               onSearchQueryChange={setSearchQuery}
               activeFilter={activeFilter}
               onFilterChange={setActiveFilter}
+              onOpenFilters={() => setIsFiltersOpen(true)}
               onCreateConversation={handleCreateConversation}
-              onResetFilters={() => {
-                setSearchQuery("")
-                setActiveFilter("todos")
-              }}
             />
           </div>
 
@@ -405,14 +599,31 @@ export default function InboxPage() {
               onCreateConversation={handleCreateConversation}
               onSearchConversation={() => toast("Busca na conversa", { description: "Filtro rápido vindo na próxima etapa." })}
               onOpenShortcuts={() => toast("Atalhos rápidos", { description: "O painel de atalhos já está priorizado na composição." })}
+              onOpenInternalChat={handleOpenInternalChat}
               isInspectorOpen={showInspector}
             />
+          </div>
+
+          <div
+            className={`${showInspector && selectedConversation ? "flex xl:flex" : "hidden xl:hidden"} min-h-0`}
+          >
+            {selectedConversation ? (
+              <ContactProfile
+                conversation={selectedConversation}
+                onUpdateTags={handleUpdateTags}
+                onUpdateScore={handleUpdateScore}
+                onUpdateProfile={handleUpdateProfile}
+                onScheduleMeeting={handleScheduleMeeting}
+                onOpenInternalChat={handleOpenInternalChat}
+                onCloseInspector={() => setShowInspector(false)}
+              />
+            ) : null}
           </div>
         </div>
       </div>
 
-      {showInspector && selectedConversation ? (
-        <div className="fixed inset-0 z-50">
+      {isMobile && showInspector && selectedConversation ? (
+        <div className="fixed inset-0 z-50 xl:hidden">
           <div className="absolute inset-0 bg-foreground/45 backdrop-blur-sm" onClick={() => setShowInspector(false)} />
           <div className="absolute inset-y-0 right-0 w-full max-w-[24rem] animate-slide-in-right p-3 sm:max-w-[28rem]">
             <ContactProfile
@@ -421,11 +632,42 @@ export default function InboxPage() {
               onUpdateScore={handleUpdateScore}
               onUpdateProfile={handleUpdateProfile}
               onScheduleMeeting={handleScheduleMeeting}
+              onOpenInternalChat={handleOpenInternalChat}
               onCloseInspector={() => setShowInspector(false)}
             />
           </div>
         </div>
       ) : null}
+
+      <InboxFiltersSheet
+        open={isFiltersOpen}
+        onOpenChange={setIsFiltersOpen}
+        value={drawerFilters}
+        onApply={(nextFilters) => {
+          setDrawerFilters(nextFilters)
+          setAppliedDrawerFilters(nextFilters)
+        }}
+        onReset={() => {
+          const resetFilters: InboxDrawerFilters = {
+            departmentQuery: "",
+            leadStatus: "all",
+            tagQuery: "",
+            onlyUnread: false,
+            onlyWithNotes: false,
+            onlyBotFlow: false,
+          }
+          setDrawerFilters(resetFilters)
+          setAppliedDrawerFilters(resetFilters)
+          setSearchQuery("")
+          setActiveFilter("todos")
+        }}
+      />
+
+      <NewConversationDialog
+        open={isNewConversationOpen}
+        onOpenChange={setIsNewConversationOpen}
+        onCreate={handleSubmitNewConversation}
+      />
     </div>
   )
 }
