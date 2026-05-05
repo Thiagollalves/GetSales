@@ -16,7 +16,7 @@ export async function POST(
     return NextResponse.json({ error: "ID inválido" }, { status: 400 });
   }
 
-  const updated = runFlowTest(flowId);
+  const updated = await runFlowTest(flowId);
   if (!updated) {
     return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 });
   }

@@ -113,7 +113,7 @@ export function HeroSection() {
             `}
           >
             <div className="grid grid-cols-2 gap-3 h-full">
-              {tags.map((tag, i) => (
+              {tags.map((tag) => (
                 <div
                   key={tag.label}
                   className={`

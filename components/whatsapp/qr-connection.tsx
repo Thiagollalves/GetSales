@@ -5,7 +5,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Smartphone, CheckCircle2 } from "lucide-react";
+import { Loader2, Smartphone, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function WhatsappQrConnection() {
@@ -16,7 +16,8 @@ export function WhatsappQrConnection() {
         setStatus("generating");
         // Simulate fetching QR code from backend
         setTimeout(() => {
-            setQrValue(`conecta-crm-session-${Math.random().toString(36).substring(7)}`);
+            const randomSession = globalThis.crypto?.randomUUID?.() ?? `session-${Date.now().toString(36)}`;
+            setQrValue(`conecta-crm-session-${randomSession}`);
             setStatus("ready");
         }, 1500);
     };

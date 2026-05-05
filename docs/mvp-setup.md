@@ -75,7 +75,19 @@ N8N_WEBHOOK_URL="https://<seu-n8n>/webhook/whatsapp"
 
 Cada evento recebido da Meta será enviado com o payload completo.
 
-## 4. Envio de mensagens
+## 4. Chatbots internos
+
+As rotas `/api/chatbots/*` usam o armazenamento do Supabase para persistir fluxos e agentes.
+
+Rode a migration abaixo antes de publicar em um ambiente novo:
+
+```sql
+supabase/migrations/20260505_chatbot_storage.sql
+```
+
+Se o Supabase não estiver configurado no ambiente local, o projeto usa fallback apenas fora de produção.
+
+## 5. Envio de mensagens
 
 A API `/api/whatsapp/send` usa as credenciais do ambiente para enviar mensagens e exige sessão administrativa válida.
 
