@@ -214,14 +214,15 @@ export function ChatWindow({
       <header className="border-b border-border/60 bg-background/70 px-2 py-1.5 backdrop-blur sm:px-5 sm:py-4">
         <div className="mb-1.5 flex items-center gap-2 xl:hidden">
           <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 shrink-0 rounded-full text-muted-foreground"
+            variant="outline"
+            size="sm"
+            className="h-9 shrink-0 rounded-full border-border/70 bg-background px-3 text-xs font-medium text-foreground shadow-sm"
             onClick={onBackToList}
-            aria-label="Voltar para a fila"
-            title="Voltar para a fila"
+            aria-label="Voltar para a lista de chats"
+            title="Voltar para a lista de chats"
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            <ChevronLeft className="mr-1.5 h-3.5 w-3.5" />
+            Voltar
           </Button>
           <div className="relative shrink-0 pt-0.5">
             <div className="flex h-8 w-8 items-center justify-center rounded-2xl bg-secondary text-[11px] font-semibold text-foreground">

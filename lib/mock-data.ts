@@ -34,6 +34,7 @@ export interface Conversation {
     messages: Message[]
     status: "novo" | "ativo" | "resolvido"
     priority?: ConversationPriority
+    pipeline?: string
     assignee?: string
     phone?: string
     email?: string
@@ -70,6 +71,7 @@ export const initialConversations: Conversation[] = [
         tags: ["VIP", "Interessado"],
         status: "ativo",
         priority: "high",
+        pipeline: "negociacao",
         assignee: "Ana Souza",
         phone: "5511999999999",
         email: "contato@email.com",
@@ -102,6 +104,7 @@ export const initialConversations: Conversation[] = [
         tags: ["Lead"],
         status: "ativo",
         priority: "medium",
+        pipeline: "novos",
         assignee: "Equipe Bot",
         email: "joao@empresa.com",
         location: "Rio de Janeiro, RJ",
@@ -129,6 +132,7 @@ export const initialConversations: Conversation[] = [
         tags: ["Cliente", "Suporte"],
         status: "novo",
         priority: "high",
+        pipeline: "qualificacao",
         assignee: "Camila Rocha",
         email: "ana@empresa.com",
         location: "Curitiba, PR",
@@ -147,6 +151,7 @@ export const initialConversations: Conversation[] = [
         tags: ["Prospect"],
         status: "ativo",
         priority: "medium",
+        pipeline: "proposta",
         assignee: "Time Comercial",
         email: "carlos@empresa.com",
         location: "Belo Horizonte, MG",
@@ -174,6 +179,7 @@ export const initialConversations: Conversation[] = [
         tags: ["Lead"],
         status: "resolvido",
         priority: "low",
+        pipeline: "fechamento",
         assignee: "Equipe Bot",
         email: "fernanda@empresa.com",
         location: "Recife, PE",
