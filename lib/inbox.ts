@@ -2,6 +2,8 @@ import type { Conversation, ConversationPriority } from "@/lib/mock-data"
 
 export type InboxTab = "ativos" | "grupos" | "pendentes" | "fechados"
 
+export type InboxTabCountTone = "neutral" | "success" | "warning" | "danger"
+
 export type InboxFilter = "todos" | "com-notas" | "alta-prioridade" | "sem-resposta"
 
 export interface InboxDrawerFilters {
@@ -11,6 +13,22 @@ export interface InboxDrawerFilters {
   onlyUnread: boolean
   onlyWithNotes: boolean
   onlyBotFlow: boolean
+}
+
+export function getInboxTabCountTone(count: number): InboxTabCountTone {
+  if (count <= 0) {
+    return "neutral"
+  }
+
+  if (count < 10) {
+    return "success"
+  }
+
+  if (count < 50) {
+    return "warning"
+  }
+
+  return "danger"
 }
 
 export function getInboxTab(conversation: Conversation): InboxTab {

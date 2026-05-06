@@ -10,7 +10,12 @@ export function DashboardHeader() {
   const pathname = usePathname()
   const router = useRouter()
 
-  if (pathname.startsWith("/dashboard/inbox")) {
+  if (
+    pathname.startsWith("/dashboard/inbox") ||
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/reports") ||
+    pathname.startsWith("/dashboard/ao-vivo")
+  ) {
     return null
   }
 

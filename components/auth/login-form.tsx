@@ -17,6 +17,13 @@ function getSafeNextPath(candidate: string | null) {
   return "/dashboard"
 }
 
+export function getLoginCredentialsFromFormData(formData: FormData) {
+  const username = String(formData.get("username") ?? "").trim()
+  const password = String(formData.get("password") ?? "").trim()
+
+  return { username, password }
+}
+
 export function LoginForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -30,12 +37,15 @@ export function LoginForm() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
 
-    if (!username.trim()) {
+    const formData = new FormData(event.currentTarget)
+    const credentials = getLoginCredentialsFromFormData(formData)
+
+    if (!credentials.username) {
       setError("Digite o usuário de acesso.")
       return
     }
 
-    if (!password.trim()) {
+    if (!credentials.password) {
       setError("Digite a senha de acesso.")
       return
     }
@@ -49,7 +59,7 @@ export function LoginForm() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(credentials),
       })
 
       const data = await response.json().catch(() => null)
@@ -91,6 +101,7 @@ export function LoginForm() {
             <div className="relative">
               <Input
                 id="username"
+                name="username"
                 type="text"
                 autoComplete="username"
                 placeholder="Digite o usuário"
@@ -106,6 +117,7 @@ export function LoginForm() {
               <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="password"
+                name="password"
                 type="password"
                 autoComplete="current-password"
                 placeholder="Digite a senha"

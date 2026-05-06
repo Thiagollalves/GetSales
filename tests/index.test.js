@@ -1,5 +1,8 @@
 import "./admin-auth.test.ts"
 import "./auth-route.test.ts"
+import "./login-form.test.ts"
 import "./chatbots-core.test.ts"
 import "./chatbots-storage.test.ts"
 import "./inbox.test.ts"
+import "./dashboard-analytics.test.ts"
+import "./live-board.test.ts"

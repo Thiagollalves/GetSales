@@ -1,46 +1,71 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useEffect, useState } from "react"
 import {
-  LayoutDashboard,
-  Inbox,
-  MessagesSquare,
-  GitBranch,
-  Zap,
   BarChart3,
-  Settings,
-  Menu,
-  X,
-  Users,
   Bot,
-  Send,
-  ChevronRight,
-  LogOut,
   ChevronsLeft,
   ChevronsRight,
+  ChevronRight,
+  GitBranch,
+  Inbox,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  MessagesSquare,
+  Radio,
+  Send,
+  Settings,
+  Users,
+  X,
+  Zap,
+  type LucideIcon,
 } from "lucide-react"
 
-const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/inbox", label: "Inbox", icon: Inbox, badge: "12" },
+import type { DashboardAnalyticsTab } from "@/lib/dashboard-analytics"
+
+type DashboardNavItem = {
+  href: string
+  label: string
+  icon: LucideIcon
+  badge?: string
+  analyticsTab?: DashboardAnalyticsTab
+}
+
+const navItems: DashboardNavItem[] = [
+  { href: "/dashboard?tab=overview", label: "Dashboard", icon: LayoutDashboard, analyticsTab: "overview" },
+  { href: "/dashboard/inbox", label: "Atendimento", icon: Inbox, badge: "12" },
+  { href: "/dashboard/ao-vivo", label: "Ao Vivo", icon: Radio },
   { href: "/dashboard/chat-interno", label: "Chat interno", icon: MessagesSquare },
   { href: "/dashboard/pipeline", label: "Pipeline", icon: GitBranch },
   { href: "/dashboard/contacts", label: "Contatos", icon: Users },
-  { href: "/dashboard/automation", label: "Automações", icon: Zap },
+  { href: "/dashboard/automation", label: "Automação", icon: Zap },
   { href: "/dashboard/chatbots", label: "Chatbots", icon: Bot },
   { href: "/dashboard/campaigns", label: "Campanhas", icon: Send },
-  { href: "/dashboard/reports", label: "Relatórios", icon: BarChart3 },
+  { href: "/dashboard?tab=attendance", label: "Relatórios", icon: BarChart3, analyticsTab: "attendance" },
 ]
 
 const bottomNavItems = [{ href: "/dashboard/settings", label: "Configurações", icon: Settings }]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed, setCollapsed] = useState(() => pathname.startsWith("/dashboard/inbox"))
+
+  const currentAnalyticsTab =
+    pathname === "/dashboard" || pathname.startsWith("/dashboard/reports")
+      ? searchParams.get("tab") === "attendance"
+        ? "attendance"
+        : searchParams.get("tab") === "overview"
+          ? "overview"
+          : pathname.startsWith("/dashboard/reports")
+            ? "attendance"
+            : "overview"
+      : null
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -73,7 +98,6 @@ export function DashboardSidebar() {
 
   return (
     <>
-      {/* Mobile menu button */}
       <button
         onClick={() => setMobileOpen(true)}
         className="fixed left-3 top-3 z-50 rounded-xl bg-sidebar-bg p-2.5 text-sidebar-foreground shadow-lg lg:hidden"
@@ -81,34 +105,30 @@ export function DashboardSidebar() {
         <Menu className="h-5 w-5" />
       </button>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 bg-foreground/60 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-foreground/60 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar */}
       <aside
         className={`
-          fixed lg:sticky top-0 left-0 z-50 lg:z-auto
-          h-dvh w-[min(86vw,18rem)] overflow-hidden bg-sidebar-bg text-sidebar-foreground shrink-0
-          flex flex-col border-r border-sidebar-border
+          fixed left-0 top-0 z-50 flex h-dvh w-[min(86vw,18rem)] shrink-0 flex-col overflow-hidden
+          border-r border-sidebar-border bg-sidebar-bg text-sidebar-foreground
           transform transition-[width,transform] duration-300 ease-out
+          lg:sticky lg:z-auto
           ${collapsed ? "lg:w-[88px]" : "lg:w-[260px]"}
           ${mobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
         `}
       >
-        {/* Close button for mobile */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 lg:hidden p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors"
+          className="absolute right-4 top-4 rounded-lg p-1.5 text-sidebar-muted transition-colors hover:bg-sidebar-border/50 hover:text-sidebar-foreground lg:hidden"
         >
           <X className="h-5 w-5" />
         </button>
 
-        {/* Brand */}
         <div className="border-b border-sidebar-border p-3">
           <div className={`flex items-center ${collapsed ? "justify-center" : "justify-between"} gap-3`}>
             <Link
@@ -143,14 +163,17 @@ export function DashboardSidebar() {
           </div>
         </div>
 
-        {/* Navigation */}
         <nav className={`flex-1 overflow-y-auto p-3 ${collapsed ? "space-y-2" : "space-y-1"}`}>
           {!collapsed ? (
             <p className="px-3 py-2 text-xs font-medium uppercase tracking-wider text-sidebar-muted">Menu</p>
           ) : null}
+
           {navItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href
+            const isActive = item.analyticsTab
+              ? currentAnalyticsTab === item.analyticsTab
+              : pathname === item.href || pathname.startsWith(`${item.href}/`)
+
             return (
               <Link
                 key={item.href}
@@ -221,9 +244,12 @@ export function DashboardSidebar() {
           </div>
         </nav>
 
-        {/* User section */}
-        <div className="p-3 border-t border-sidebar-border">
-          <div className={`flex items-center rounded-lg transition-colors hover:bg-sidebar-border/50 ${collapsed ? "justify-center p-2" : "gap-3 p-2"}`}>
+        <div className="border-t border-sidebar-border p-3">
+          <div
+            className={`flex items-center rounded-lg transition-colors hover:bg-sidebar-border/50 ${
+              collapsed ? "justify-center p-2" : "gap-3 p-2"
+            }`}
+          >
             <div className="relative shrink-0">
               <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary/30 to-chart-2/30">
                 <span className="text-sm font-semibold text-primary">U</span>
