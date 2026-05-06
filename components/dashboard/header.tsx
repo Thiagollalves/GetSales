@@ -14,7 +14,8 @@ export function DashboardHeader() {
     pathname.startsWith("/dashboard/inbox") ||
     pathname === "/dashboard" ||
     pathname.startsWith("/dashboard/reports") ||
-    pathname.startsWith("/dashboard/ao-vivo")
+    pathname.startsWith("/dashboard/ao-vivo") ||
+    pathname.startsWith("/dashboard/contacts")
   ) {
     return null
   }
