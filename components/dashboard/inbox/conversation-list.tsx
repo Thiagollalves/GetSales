@@ -20,6 +20,7 @@ import {
   NotebookPen,
   Plus,
   Search,
+  Users,
 } from "lucide-react"
 
 const filterChips: Array<{ id: InboxFilter; label: string }> = [
@@ -44,9 +45,12 @@ const tabMeta: Record<
   }
 > = {
   ativos: { icon: MessageCircleMore },
+  grupos: { icon: Users },
   pendentes: { icon: CircleHelp },
   fechados: { icon: CheckCircle2 },
 }
+
+const tabOrder: InboxTab[] = ["ativos", "pendentes", "fechados", "grupos"]
 
 interface ConversationListProps {
   conversations: Conversation[]
@@ -106,8 +110,8 @@ export function ConversationList({
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 rounded-[18px] bg-muted/35 p-1.5 shadow-sm ring-1 ring-border/60 sm:gap-2 sm:rounded-[20px]">
-          {(Object.keys(tabCounts) as InboxTab[]).map((tab) => {
+        <div className="grid grid-cols-4 gap-2 rounded-[18px] bg-muted/35 p-1.5 shadow-sm ring-1 ring-border/60 sm:gap-2 sm:rounded-[20px]">
+          {tabOrder.map((tab) => {
             const isActive = activeTab === tab
             const Icon = tabMeta[tab].icon
             return (
@@ -115,7 +119,7 @@ export function ConversationList({
                 key={tab}
                 type="button"
                 onClick={() => onTabChange(tab)}
-                className={`relative flex min-h-[4.5rem] flex-col items-center justify-center rounded-[16px] px-2 py-2.5 text-center transition-all sm:min-h-[5rem] sm:px-3 ${
+                className={`relative flex min-h-[4.5rem] min-w-0 flex-col items-center justify-center rounded-[16px] px-1.5 py-2 text-center transition-all sm:min-h-[5rem] sm:px-3 ${
                   isActive
                     ? "bg-background text-foreground shadow-sm ring-1 ring-border/60"
                     : "text-muted-foreground hover:bg-background/70 hover:text-foreground"
@@ -129,7 +133,7 @@ export function ConversationList({
                   {tabCounts[tab]}
                 </span>
                 <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${isActive ? "text-primary" : ""}`} />
-                <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.24em] sm:text-[11px] sm:tracking-[0.28em]">
+                <span className="mt-1 block whitespace-nowrap text-[8px] font-semibold uppercase leading-none tracking-[0.02em] sm:text-[9px] sm:tracking-[0.08em]">
                   {getInboxTabLabel(tab)}
                 </span>
                 <span className={`mt-0.5 h-0.5 w-12 rounded-full ${isActive ? "bg-primary" : "bg-transparent"}`} />

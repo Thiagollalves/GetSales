@@ -55,6 +55,7 @@ export interface Conversation {
     name: string
     avatar: string
     channel: "whatsapp" | "instagram" | "telegram" | "email" | "webchat"
+    isGroup?: boolean
     lastMessage: string
     time: string
     unread: boolean
@@ -326,6 +327,28 @@ export const initialConversations: Conversation[] = [
         messages: [
             { id: 1, content: "Vocês têm trial gratuito?", sender: "contact", time: "07:30" },
             { id: 2, content: "Sim! Oferecemos 14 dias de teste gratuito.", sender: "bot", time: "07:30" },
+        ],
+    },
+    {
+        id: 6,
+        name: "Grupo Comercial",
+        avatar: "GC",
+        channel: "whatsapp",
+        isGroup: true,
+        lastMessage: "Fechamos o alinhamento da proposta para amanha.",
+        time: "4 min",
+        unread: false,
+        score: 74,
+        tags: ["Grupo", "WhatsApp"],
+        status: "ativo",
+        priority: "medium",
+        pipeline: "negociacao",
+        assignee: "Ana Souza",
+        department: "Comercial",
+        customerSince: "Jan 2025",
+        messages: [
+            { id: 1, content: "Pessoal, vamos fechar a proposta hoje?", sender: "contact", time: "11:18" },
+            { id: 2, content: "Sim, ficou combinado para envio ainda hoje.", sender: "agent", time: "11:20" },
         ],
     },
 ]

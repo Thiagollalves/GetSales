@@ -1,6 +1,6 @@
 import type { Conversation, ConversationPriority } from "@/lib/mock-data"
 
-export type InboxTab = "ativos" | "pendentes" | "fechados"
+export type InboxTab = "ativos" | "grupos" | "pendentes" | "fechados"
 
 export type InboxFilter = "todos" | "com-notas" | "alta-prioridade" | "sem-resposta"
 
@@ -14,6 +14,10 @@ export interface InboxDrawerFilters {
 }
 
 export function getInboxTab(conversation: Conversation): InboxTab {
+  if (conversation.channel === "whatsapp" && conversation.isGroup) {
+    return "grupos"
+  }
+
   switch (conversation.status) {
     case "resolvido":
       return "fechados"
@@ -66,6 +70,8 @@ export function getInboxTabLabel(tab: InboxTab) {
   switch (tab) {
     case "ativos":
       return "Ativos"
+    case "grupos":
+      return "Grupos"
     case "pendentes":
       return "Pendentes"
     case "fechados":
