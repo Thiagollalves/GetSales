@@ -47,8 +47,8 @@ import {
   UserRound,
 } from "lucide-react"
 
-function normalizeContactTags(tags: string) {
-  return tags
+function normalizeContactTags(tags?: string | null) {
+  return (tags ?? "")
     .split(/[,;]+/)
     .map((tag) => tag.trim())
     .filter(Boolean)

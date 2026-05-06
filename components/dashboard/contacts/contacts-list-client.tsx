@@ -56,8 +56,8 @@ function toFormattedCount(value: number) {
   return new Intl.NumberFormat("pt-BR").format(value)
 }
 
-function normalizeContactTags(tags: string) {
-  return tags
+function normalizeContactTags(tags?: string | null) {
+  return (tags ?? "")
     .split(/[,;]+/)
     .map((tag) => tag.trim())
     .filter(Boolean)

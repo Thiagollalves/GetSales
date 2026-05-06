@@ -1,11 +1,13 @@
 import ContactDetailClient from "@/components/dashboard/contacts/contact-detail-client"
 
-export default function ContactDetailPage({
+export default async function ContactDetailPage({
   params,
 }: {
-  params: {
+  params: Promise<{
     contactId: string
-  }
+  }>
 }) {
-  return <ContactDetailClient contactId={params.contactId} />
+  const { contactId } = await params
+
+  return <ContactDetailClient contactId={contactId} />
 }

@@ -59,7 +59,7 @@ function getSearchParamValue(searchParams: LiveBoardSearchParams, key: string) {
     return searchParams.get(key)
   }
 
-  const value = searchParams[key]
+  const value = (searchParams as Record<string, string | string[] | undefined>)[key]
   if (Array.isArray(value)) {
     return value[0] ?? null
   }
