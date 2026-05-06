@@ -40,30 +40,22 @@ export function DashboardSidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") {
-      return pathname.startsWith("/dashboard/inbox")
-    }
-
-    const stored = window.localStorage.getItem("dashboard-sidebar-collapsed")
-    if (stored !== null) {
-      try {
-        return JSON.parse(stored) as boolean
-      } catch {
-        return false
-      }
-    }
-
-    return pathname.startsWith("/dashboard/inbox")
-  })
+  const [collapsed, setCollapsed] = useState(() => pathname.startsWith("/dashboard/inbox"))
 
   useEffect(() => {
     if (typeof window === "undefined") return
 
     const stored = window.localStorage.getItem("dashboard-sidebar-collapsed")
-    if (stored === null && pathname.startsWith("/dashboard/inbox")) {
-      setCollapsed(true)
+    if (stored !== null) {
+      try {
+        setCollapsed(JSON.parse(stored) as boolean)
+        return
+      } catch {
+        // Ignore malformed persisted state and fall back to the route default.
+      }
     }
+
+    setCollapsed(pathname.startsWith("/dashboard/inbox"))
   }, [pathname])
 
   useEffect(() => {

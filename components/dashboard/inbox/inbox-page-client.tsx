@@ -245,7 +245,7 @@ export default function InboxPage() {
 
       setConversations((previous) => [newConversation, ...previous])
       setSelectedId(newConversation.id)
-      setActiveTab(nextStatus === "resolvido" ? "fechados" : nextStatus === "novo" ? "pendentes" : "ativos")
+      setActiveTab(getInboxTab(newConversation))
       setMobileView("chat")
       setShowInspector(false)
       syncConversationToPipelineStorage(newConversation)
@@ -259,9 +259,7 @@ export default function InboxPage() {
     setSelectedId(conversation.id)
     setMobileView("chat")
     setShowInspector(false)
-    if (getInboxTab(conversation) === "fechados") {
-      setActiveTab("fechados")
-    }
+    setActiveTab(getInboxTab(conversation))
   }, [])
 
   const handleSendMessage = useCallback(
@@ -465,45 +463,42 @@ export default function InboxPage() {
       time: closedAt,
     }
 
-    updateConversation(selectedConversation.id, (conversation) => ({
-      ...conversation,
-      status: "resolvido",
-      unread: false,
-      closedReason: payload.reason,
-      closedAt,
-      timeline: [...(conversation.timeline ?? []), timelineItem],
-    }))
-    syncConversationToPipelineStorage({
+    const nextConversation = {
       ...selectedConversation,
-      status: "resolvido",
+      status: "resolvido" as const,
       unread: false,
       closedReason: payload.reason,
       closedAt,
       timeline: [...(selectedConversation.timeline ?? []), timelineItem],
-    })
-    setActiveTab("fechados")
+    }
+
+    updateConversation(selectedConversation.id, (conversation) => ({
+      ...conversation,
+      ...nextConversation,
+    }))
+    syncConversationToPipelineStorage(nextConversation)
+    setActiveTab(getInboxTab(nextConversation))
     toast.success("Atendimento fechado.")
   }, [selectedConversation, updateConversation])
 
   const handleReturnConversation = useCallback(() => {
     if (!selectedConversation) return
 
+    const nextConversation = {
+      ...selectedConversation,
+      status: "ativo" as const,
+      unread: false,
+      closedReason: undefined,
+      closedAt: undefined,
+    }
+
     updateConversation(selectedConversation.id, (conversation) => ({
       ...conversation,
-      status: "ativo",
-      unread: false,
-      closedReason: undefined,
-      closedAt: undefined,
+      ...nextConversation,
     }))
-    syncConversationToPipelineStorage({
-      ...selectedConversation,
-      status: "ativo",
-      unread: false,
-      closedReason: undefined,
-      closedAt: undefined,
-    })
-    setActiveTab("ativos")
-    toast.success("Atendimento retornado para ativos.")
+    syncConversationToPipelineStorage(nextConversation)
+    setActiveTab(getInboxTab(nextConversation))
+    toast.success(nextConversation.isGroup ? "Grupo reaberto." : "Atendimento retornado para ativos.")
   }, [selectedConversation, updateConversation])
 
   const handleTransferConversation = useCallback(() => {
@@ -515,24 +510,25 @@ export default function InboxPage() {
 
     if (!trimmedAssignee) return
 
-    updateConversation(selectedConversation.id, (conversation) => ({
-      ...conversation,
-      assignee: trimmedAssignee,
-      status: "ativo",
-      unread: false,
-    }))
-    syncConversationToPipelineStorage({
+    const nextConversation = {
       ...selectedConversation,
       assignee: trimmedAssignee,
-      status: "ativo",
+      status: "ativo" as const,
       unread: false,
-    })
-    setActiveTab("ativos")
+    }
+
+    updateConversation(selectedConversation.id, (conversation) => ({
+      ...conversation,
+      ...nextConversation,
+    }))
+    syncConversationToPipelineStorage(nextConversation)
+    setActiveTab(getInboxTab(nextConversation))
     toast.success(`Atendimento transferido para ${trimmedAssignee}.`)
   }, [selectedConversation, updateConversation])
 
   const tabCounts = {
     ativos: conversations.filter((conversation) => getInboxTab(conversation) === "ativos").length,
+    grupos: conversations.filter((conversation) => getInboxTab(conversation) === "grupos").length,
     pendentes: conversations.filter((conversation) => getInboxTab(conversation) === "pendentes").length,
     fechados: conversations.filter((conversation) => getInboxTab(conversation) === "fechados").length,
   }
