@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { notifyAction } from "@/lib/button-actions"
+import { parseContactsFromFile } from "@/lib/contacts-import"
 import type { Conversation } from "@/lib/mock-data"
 import {
   CONTACTS_TOTAL_COUNT,
@@ -36,8 +37,6 @@ import {
   getContactStatusBadgeVariant,
   getContactStatusLabel,
   getContactsFilterOptions,
-  parseContactsFromCsv,
-  saveContactsToStorage,
   resolveContactsListState,
 } from "@/lib/contacts"
 import { ContactUpsertDialog, type ContactUpsertValues } from "@/components/dashboard/contacts/contact-upsert-dialog"
@@ -174,7 +173,6 @@ export default function ContactsListClient() {
 
     const nextContacts = [contact, ...contacts]
     setContacts(nextContacts)
-    saveContactsToStorage(nextContacts)
     setCreateDialogOpen(false)
     notifyAction("Contato criado", `${trimmedName} adicionado à base.`)
     router.push(buildContactsDetailUrl(`/dashboard/contacts/${contact.id}`, { tab: "tickets" }))
@@ -194,23 +192,23 @@ export default function ContactsListClient() {
     notifyAction("Exportação pronta", `${filename} foi baixado para sua pasta de downloads.`)
   }
 
-  const handleImportContacts = (event: ChangeEvent<HTMLInputElement>) => {
+  const handleImportContacts = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) {
       return
     }
 
-    if (!file.name.toLowerCase().endsWith(".csv")) {
-      notifyAction("Formato inválido", "Envie um arquivo CSV para importar contatos.")
+    const extension = file.name.split(".").pop()?.toLowerCase()
+    if (!extension || !["csv", "xls", "xlsx"].includes(extension)) {
+      notifyAction("Formato inválido", "Envie um arquivo CSV ou XLSX para importar contatos.")
       event.target.value = ""
       return
     }
 
-    const reader = new FileReader()
-    reader.onload = () => {
-      const text = reader.result?.toString() ?? ""
-      let nextId = Math.max(...contacts.map((contact) => contact.id), 0) + 1
-      const parsed = parseContactsFromCsv(text, () => {
+    let nextId = Math.max(...contacts.map((contact) => contact.id), 0) + 1
+
+    try {
+      const parsed = await parseContactsFromFile(file, () => {
         const currentId = nextId
         nextId += 1
         return currentId
@@ -221,19 +219,13 @@ export default function ContactsListClient() {
       } else {
         const nextContacts = [...parsed, ...contacts]
         setContacts(nextContacts)
-        saveContactsToStorage(nextContacts)
         notifyAction("Importação concluída", `${parsed.length} contatos importados de ${file.name}.`)
       }
-
-      event.target.value = ""
-    }
-
-    reader.onerror = () => {
+    } catch {
       notifyAction("Erro na importação", "Não foi possível ler o arquivo selecionado.")
+    } finally {
       event.target.value = ""
     }
-
-    reader.readAsText(file, "utf-8")
   }
 
   const handleCreateOpenChange = (open: boolean) => {
@@ -256,7 +248,7 @@ export default function ContactsListClient() {
       <input
         ref={importInputRef}
         type="file"
-        accept=".csv,text/csv"
+        accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         className="hidden"
         onChange={handleImportContacts}
       />
