@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto"
-
 export type FlowSyncStatus = "idle" | "testing" | "publishing" | "success" | "error"
 export type FlowNodeType = "start" | "step"
 export type FlowInteractionType = "message" | "menu" | "media"
@@ -123,9 +121,16 @@ export interface FlowPatch {
 }
 
 const FLOW_DEFINITION_VERSION = 1
+let fallbackIdCounter = 0
 
 function createId(prefix: string) {
-  return `${prefix}-${randomUUID()}`
+  const uuid = globalThis.crypto?.randomUUID?.()
+  if (uuid) {
+    return `${prefix}-${uuid}`
+  }
+
+  fallbackIdCounter += 1
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}-${fallbackIdCounter.toString(36)}`
 }
 
 function cloneJson<T>(value: T): T {
