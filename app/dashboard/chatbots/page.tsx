@@ -23,6 +23,7 @@ import { ChatbotsFlowInspector } from "@/components/dashboard/chatbots/chatbots-
 import { ChatbotsFlowList, type FlowFilter } from "@/components/dashboard/chatbots/chatbots-flow-list"
 import { ChatbotsNewFlowDialog, type NewChatbotFlowDraft } from "@/components/dashboard/chatbots/chatbots-new-flow-dialog"
 import { useIsMobile } from "@/components/ui/use-mobile"
+import { createSeedChatbotFlows } from "@/lib/chatbots-seeds"
 import {
   addFlowStage,
   serializeFlowDefinition,
@@ -213,6 +214,12 @@ export default function ChatbotsPage() {
 
       setFlows(Array.isArray(body) ? (body as FlowEntry[]) : [])
     } catch (error) {
+      if (process.env.NODE_ENV !== "production") {
+        setFlows(createSeedChatbotFlows())
+        setLoadError(null)
+        return
+      }
+
       setLoadError(error instanceof Error ? error.message : "Falha ao carregar os fluxos.")
     } finally {
       setIsLoading(false)
