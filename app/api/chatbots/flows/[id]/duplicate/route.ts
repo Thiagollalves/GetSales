@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { runFlowTest } from "@/lib/chatbots"
+import { duplicateFlow } from "@/lib/chatbots"
 import { isAdminRequestAuthorized } from "@/lib/admin-auth"
 
 export async function POST(
@@ -16,17 +16,10 @@ export async function POST(
     return NextResponse.json({ error: "ID inválido" }, { status: 400 })
   }
 
-  try {
-    const updated = await runFlowTest(flowId)
-    if (!updated) {
-      return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 })
-    }
-
-    return NextResponse.json(updated)
-  } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Falha ao executar o teste." },
-      { status: 502 },
-    )
+  const duplicated = await duplicateFlow(flowId)
+  if (!duplicated) {
+    return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 })
   }
+
+  return NextResponse.json(duplicated, { status: 201 })
 }

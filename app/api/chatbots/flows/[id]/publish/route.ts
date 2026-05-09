@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { runFlowTest } from "@/lib/chatbots"
+import { publishFlow } from "@/lib/chatbots"
 import { isAdminRequestAuthorized } from "@/lib/admin-auth"
 
 export async function POST(
@@ -17,7 +17,7 @@ export async function POST(
   }
 
   try {
-    const updated = await runFlowTest(flowId)
+    const updated = await publishFlow(flowId)
     if (!updated) {
       return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 })
     }
@@ -25,7 +25,7 @@ export async function POST(
     return NextResponse.json(updated)
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Falha ao executar o teste." },
+      { error: error instanceof Error ? error.message : "Falha ao publicar o fluxo." },
       { status: 502 },
     )
   }
