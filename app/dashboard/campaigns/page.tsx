@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,12 +10,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { Send, Plus, Users, LayoutTemplate, Loader2 } from "lucide-react";
-import { initialTemplates, initialConversations, Template } from "@/lib/mock-data";
+import { initialTemplates, Template } from "@/lib/mock-data";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
+import { useContactsStore } from "@/components/dashboard/contacts/use-contacts-store";
+import { buildCampaignTagOptions, selectCampaignAudience } from "@/lib/campaigns";
 
 const createTemplateId = () => globalThis.crypto?.randomUUID?.() ?? `template-${Date.now()}`
 
 export default function CampaignsPage() {
+  const { contacts } = useContactsStore()
   const [activeTab, setActiveTab] = useState("broadcast");
   const [selectedTag, setSelectedTag] = useState("all");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
@@ -26,9 +29,8 @@ export default function CampaignsPage() {
   const [newTemplateBody, setNewTemplateBody] = useState("");
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
-  const audience =
-    selectedTag === "all" ? initialConversations : initialConversations.filter((contact) => contact.tags.includes(selectedTag));
-  const uniqueTags = Array.from(new Set(initialConversations.flatMap((contact) => contact.tags)));
+  const audience = useMemo(() => selectCampaignAudience(contacts, selectedTag), [contacts, selectedTag]);
+  const tagOptions = useMemo(() => buildCampaignTagOptions(contacts), [contacts]);
 
   const handleSendCampaign = async () => {
     if (!selectedTemplate) {
@@ -122,10 +124,9 @@ export default function CampaignsPage() {
                       <SelectValue placeholder="Selecione uma tag" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Todos os Contatos ({initialConversations.length})</SelectItem>
-                      {uniqueTags.map((tag) => (
-                        <SelectItem key={tag} value={tag}>
-                          {tag} ({initialConversations.filter((contact) => contact.tags.includes(tag)).length})
+                      {tagOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label} ({option.count})
                         </SelectItem>
                       ))}
                     </SelectContent>
