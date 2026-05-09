@@ -1,5 +1,5 @@
-import ContactsPageClient from "@/components/dashboard/contacts/contacts-page-client"
+import ContactsListClient from "@/components/dashboard/contacts/contacts-list-client"
 
 export default function ContactsPage() {
-  return <ContactsPageClient />
+  return <ContactsListClient />
 }
