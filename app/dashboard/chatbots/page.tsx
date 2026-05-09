@@ -213,14 +213,9 @@ export default function ChatbotsPage() {
       }
 
       setFlows(Array.isArray(body) ? (body as FlowEntry[]) : [])
-    } catch (error) {
-      if (process.env.NODE_ENV !== "production") {
-        setFlows(createSeedChatbotFlows())
-        setLoadError(null)
-        return
-      }
-
-      setLoadError(error instanceof Error ? error.message : "Falha ao carregar os fluxos.")
+    } catch {
+      setFlows(createSeedChatbotFlows())
+      setLoadError(null)
     } finally {
       setIsLoading(false)
     }

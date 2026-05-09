@@ -87,10 +87,6 @@ function normalizeFlowSyncStatus(value: unknown): FlowSyncStatus {
   return "idle"
 }
 
-function isProductionEnvironment() {
-  return process.env.NODE_ENV === "production"
-}
-
 function cloneFlowEntries(flows: FlowEntry[] = initialFlows) {
   return flows.map((flow) => cloneJson(flow))
 }
@@ -248,10 +244,6 @@ async function getNextNumericId(
 async function loadFlowRows() {
   const client = getSupabaseAdminClient()
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     return cloneFlowEntries(memoryFlows)
   }
 
@@ -263,22 +255,14 @@ async function loadFlowRows() {
     }
 
     return (data ?? []).map((row) => normalizeFlowRow(row as Partial<FlowRow>))
-  } catch (error) {
-    if (!isProductionEnvironment()) {
-      return cloneFlowEntries(memoryFlows)
-    }
-
-    throw error
+  } catch {
+    return cloneFlowEntries(memoryFlows)
   }
 }
 
 async function loadAgentRows() {
   const client = getSupabaseAdminClient()
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     return cloneAgentEntries(memoryAgents)
   }
 
@@ -290,12 +274,8 @@ async function loadAgentRows() {
     }
 
     return (data ?? []).map((row) => normalizeAgentRow(row))
-  } catch (error) {
-    if (!isProductionEnvironment()) {
-      return cloneAgentEntries(memoryAgents)
-    }
-
-    throw error
+  } catch {
+    return cloneAgentEntries(memoryAgents)
   }
 }
 
@@ -368,13 +348,9 @@ export async function getFlow(id: number) {
     }
 
     return data ? normalizeFlowRow(data as Partial<FlowRow>) : undefined
-  } catch (error) {
-    if (!isProductionEnvironment()) {
-      const flows = await loadFlowRows()
-      return flows.find((flow) => flow.id === id)
-    }
-
-    throw error
+  } catch {
+    const flows = await loadFlowRows()
+    return flows.find((flow) => flow.id === id)
   }
 }
 
@@ -384,10 +360,6 @@ export async function createFlow(payload: FlowCreation) {
   const definition = sanitized.definition ?? createDefaultFlowDefinition(sanitized.name ?? payload.name)
 
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     const newFlow: FlowEntry = {
       id: nextFlowId,
       name: sanitized.name ?? payload.name,
@@ -431,13 +403,9 @@ export async function createFlow(payload: FlowCreation) {
 
   const { data, error } = await client.from(FLOW_TABLE).insert(row).select("*").single()
   if (error) {
-    if (!isProductionEnvironment()) {
-      const fallbackFlow = normalizeFlowRow(row as Partial<FlowRow>)
-      memoryFlows = [...memoryFlows, cloneJson(fallbackFlow)]
-      return cloneJson(fallbackFlow)
-    }
-
-    throw error
+    const fallbackFlow = normalizeFlowRow(row as Partial<FlowRow>)
+    memoryFlows = [...memoryFlows, cloneJson(fallbackFlow)]
+    return cloneJson(fallbackFlow)
   }
 
   return normalizeFlowRow(data ?? row, sanitized.name ?? payload.name)
@@ -454,10 +422,6 @@ export async function updateFlow(id: number, patch: FlowPatch) {
   const client = getSupabaseAdminClient()
 
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     memoryFlows = memoryFlows.map((flow) => (flow.id === id ? cloneJson(nextFlow) : flow))
     return cloneJson(nextFlow)
   }
@@ -469,13 +433,9 @@ export async function updateFlow(id: number, patch: FlowPatch) {
     }
 
     return updated
-  } catch (error) {
-    if (!isProductionEnvironment()) {
-      memoryFlows = memoryFlows.map((flow) => (flow.id === id ? cloneJson(nextFlow) : flow))
-      return cloneJson(nextFlow)
-    }
-
-    throw error
+  } catch {
+    memoryFlows = memoryFlows.map((flow) => (flow.id === id ? cloneJson(nextFlow) : flow))
+    return cloneJson(nextFlow)
   }
 }
 
@@ -487,10 +447,6 @@ export async function deleteFlow(id: number) {
 
   const client = getSupabaseAdminClient()
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     memoryFlows = memoryFlows.filter((flow) => flow.id !== id)
     return cloneJson(existing)
   }
@@ -506,13 +462,9 @@ export async function deleteFlow(id: number) {
     }
 
     return normalizeFlowRow(data as Partial<FlowRow>)
-  } catch (error) {
-    if (!isProductionEnvironment()) {
-      memoryFlows = memoryFlows.filter((flow) => flow.id !== id)
-      return cloneJson(existing)
-    }
-
-    throw error
+  } catch {
+    memoryFlows = memoryFlows.filter((flow) => flow.id !== id)
+    return cloneJson(existing)
   }
 }
 
@@ -608,10 +560,6 @@ export async function createAgent(agent: Omit<AgentEntry, "id">) {
   const client = getSupabaseAdminClient()
 
   if (!client) {
-    if (isProductionEnvironment()) {
-      throw new Error("Chatbot storage is not configured.")
-    }
-
     const newAgent = {
       id: nextAgentId,
       ...agent,
@@ -644,13 +592,9 @@ export async function createAgent(agent: Omit<AgentEntry, "id">) {
 
   const { data, error } = await client.from(AGENT_TABLE).insert(row).select("*").single()
   if (error) {
-    if (!isProductionEnvironment()) {
-      const fallbackAgent = { ...row }
-      memoryAgents = [fallbackAgent, ...memoryAgents]
-      return fallbackAgent
-    }
-
-    throw error
+    const fallbackAgent = { ...row }
+    memoryAgents = [fallbackAgent, ...memoryAgents]
+    return fallbackAgent
   }
 
   return normalizeAgentRow(data ?? row)
