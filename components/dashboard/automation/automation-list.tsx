@@ -15,6 +15,8 @@ const triggerIcons: Record<string, React.ReactNode> = {
   engagement: <TrendingUp className="h-4 w-4" />,
 }
 
+const numberFormatter = new Intl.NumberFormat("pt-BR")
+
 interface AutomationListProps {
   automations: Automation[]
   onSelect: (automation: Automation) => void
@@ -59,7 +61,7 @@ export function AutomationList({ automations, onSelect, onCreate }: AutomationLi
               <Zap className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="text-2xl font-bold">{automations.reduce((sum, a) => sum + a.runs, 0).toLocaleString()}</p>
+              <p className="text-2xl font-bold">{numberFormatter.format(automations.reduce((sum, a) => sum + a.runs, 0))}</p>
               <p className="text-sm text-muted-foreground">Execuções totais</p>
             </div>
           </div>
@@ -120,7 +122,7 @@ export function AutomationList({ automations, onSelect, onCreate }: AutomationLi
                   <span className="capitalize">{automation.trigger.replace("_", " ")}</span>
                 </div>
                 <div>
-                  <span className="font-medium text-foreground">{automation.runs.toLocaleString()}</span> execuções
+                  <span className="font-medium text-foreground">{numberFormatter.format(automation.runs)}</span> execuções
                 </div>
                 <div>
                   Última: <span className="text-foreground">{automation.lastRun}</span>
