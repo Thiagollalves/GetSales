@@ -1,25 +1,32 @@
-import { NextRequest, NextResponse } from "next/server";
-import { runFlowTest } from "@/lib/chatbots";
-import { isAdminRequestAuthorized } from "@/lib/admin-auth";
+import { NextResponse } from "next/server"
+import { runFlowTest } from "@/lib/chatbots"
+import { isAdminRequestAuthorized } from "@/lib/admin-auth"
 
 export async function POST(
-  request: NextRequest,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   if (!isAdminRequestAuthorized(request)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { id } = await params;
-  const flowId = Number(id);
-  if (Number.isNaN(flowId)) {
-    return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+  const { id } = await params
+  const flowId = Number(id)
+  if (!Number.isFinite(flowId)) {
+    return NextResponse.json({ error: "ID inválido" }, { status: 400 })
   }
 
-  const updated = await runFlowTest(flowId);
-  if (!updated) {
-    return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 });
-  }
+  try {
+    const updated = await runFlowTest(flowId)
+    if (!updated) {
+      return NextResponse.json({ error: "Fluxo não encontrado" }, { status: 404 })
+    }
 
-  return NextResponse.json(updated);
+    return NextResponse.json(updated)
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Falha ao executar o teste." },
+      { status: 502 },
+    )
+  }
 }

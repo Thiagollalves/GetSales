@@ -5,9 +5,11 @@ import type { InboxFilter, InboxTab } from "@/lib/inbox"
 import {
   getConversationPriority,
   getConversationStatusLabel,
+  getInboxTabCountTone,
   getInboxTabLabel,
   getPriorityLabel,
   getPriorityTone,
+  type InboxTabCountTone,
 } from "@/lib/inbox"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -51,6 +53,13 @@ const tabMeta: Record<
 }
 
 const tabOrder: InboxTab[] = ["ativos", "pendentes", "fechados", "grupos"]
+
+const tabCountToneClasses: Record<InboxTabCountTone, string> = {
+  neutral: "bg-muted/30 text-muted-foreground ring-1 ring-border/60 shadow-none",
+  success: "bg-green-500 text-white shadow-sm shadow-green-500/20",
+  warning: "bg-yellow-400 text-yellow-950 shadow-sm shadow-yellow-500/20",
+  danger: "bg-destructive text-destructive-foreground shadow-sm shadow-destructive/20",
+}
 
 interface ConversationListProps {
   conversations: Conversation[]
@@ -114,6 +123,8 @@ export function ConversationList({
           {tabOrder.map((tab) => {
             const isActive = activeTab === tab
             const Icon = tabMeta[tab].icon
+            const countTone = getInboxTabCountTone(tabCounts[tab])
+
             return (
               <button
                 key={tab}
@@ -126,9 +137,7 @@ export function ConversationList({
                 }`}
               >
                 <span
-                  className={`absolute right-2 top-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white ${
-                    isActive ? "bg-primary" : "bg-destructive"
-                  }`}
+                  className={`absolute right-2 top-2 inline-flex min-w-5 items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none ${tabCountToneClasses[countTone]}`}
                 >
                   {tabCounts[tab]}
                 </span>

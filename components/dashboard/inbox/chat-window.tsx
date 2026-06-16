@@ -89,7 +89,7 @@ export function ChatWindow({
   const [message, setMessage] = useState("")
   const [showEmojiPicker, setShowEmojiPicker] = useState(false)
   const [isRecording, setIsRecording] = useState(false)
-  const [isContextExpanded, setIsContextExpanded] = useState(true)
+  const [isContextExpanded, setIsContextExpanded] = useState(false)
   const [isCloseTicketOpen, setIsCloseTicketOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -105,7 +105,7 @@ export function ChatWindow({
     setMessage("")
     setShowEmojiPicker(false)
     setIsRecording(false)
-    setIsContextExpanded(true)
+    setIsContextExpanded(false)
     setIsCloseTicketOpen(false)
   }, [conversation?.id])
 
@@ -422,21 +422,28 @@ export function ChatWindow({
 
           <div
             className={`overflow-hidden transition-[max-height,opacity,margin-top] duration-300 ease-out ${
-              isContextExpanded ? "mt-0 max-h-40 opacity-100" : "mt-0 max-h-0 opacity-0"
+              isContextExpanded ? "mt-0 max-h-28 opacity-100" : "mt-0 max-h-0 opacity-0"
             }`}
           >
-            <div className="flex flex-wrap gap-2 pr-1">
+            <div className="flex flex-wrap items-center gap-2 pr-1">
               {headerSummaryItems.map((item) => (
                 <div
                   key={item.label}
-                  className="min-w-[10rem] flex-1 basis-[10rem] rounded-[18px] border border-border/60 bg-background/80 px-3 py-2 shadow-sm"
+                  className="inline-flex min-w-0 items-center gap-2 rounded-full border border-border/60 bg-background/70 px-3 py-1.5 text-xs text-muted-foreground shadow-sm"
                 >
-                  <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                    {item.label}
-                  </p>
-                  <p className="mt-1 truncate text-sm font-medium text-foreground">{item.value}</p>
+                  <span className="whitespace-nowrap font-semibold uppercase tracking-[0.22em]">{item.label}</span>
+                  <span className="truncate font-medium text-foreground">{item.value}</span>
                 </div>
               ))}
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-full px-3 text-xs font-medium text-muted-foreground hover:text-foreground"
+                onClick={onToggleInspector}
+              >
+                Editar
+              </Button>
             </div>
           </div>
         </div>
