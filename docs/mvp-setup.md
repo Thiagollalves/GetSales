@@ -41,9 +41,20 @@ https://<sua-url>/api/whatsapp/webhook
 Use o mesmo `META_VERIFY_TOKEN` definido no ambiente.
 O `META_APP_SECRET` é usado para validar a assinatura `X-Hub-Signature-256` antes de processar qualquer payload.
 
-## 2. Supabase (armazenar mensagens)
+## 2. Supabase (armazenar CRM e mensagens)
 
-Crie a tabela `whatsapp_messages` para armazenar eventos recebidos:
+Crie a tabela `crm_contacts` para guardar contatos, tickets e histórico do CRM:
+
+```sql
+create table if not exists public.crm_contacts (
+  id bigint primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz default now()
+);
+```
+
+Crie também a tabela `whatsapp_messages` para armazenar eventos recebidos:
 
 ```sql
 create table if not exists public.whatsapp_messages (
@@ -80,11 +91,14 @@ Cada evento recebido da Meta será enviado com o payload completo.
 ## 4. Chatbots internos
 
 As rotas `/api/chatbots/*` usam o armazenamento do Supabase para persistir fluxos e agentes.
+O CRM usa `/api/contacts` para ler e salvar contatos, tickets e timeline.
 
-Rode a migration abaixo antes de publicar em um ambiente novo:
+Rode as migrations abaixo antes de publicar em um ambiente novo:
 
 ```sql
 supabase/migrations/20260505_chatbot_storage.sql
+supabase/migrations/20260619_crm_contacts.sql
+supabase/migrations/20260520_whatsapp_messages.sql
 ```
 
 Se o Supabase não estiver configurado no ambiente local, o projeto usa fallback apenas fora de produção.
