@@ -75,6 +75,7 @@ export default function InboxPage() {
   })
   const [newChatCounter, setNewChatCounter] = useState(1)
   const [hasLoadedConversations, setHasLoadedConversations] = useState(false)
+  const [backendReady, setBackendReady] = useState(false)
   const isMobile = useIsMobile()
 
   const deferredSearchQuery = useDeferredValue(searchQuery)
@@ -86,6 +87,8 @@ export default function InboxPage() {
   }, [isMobile])
 
   useEffect(() => {
+    let cancelled = false
+
     const stored = localStorage.getItem("inbox_conversations")
     if (stored) {
       try {
@@ -103,6 +106,45 @@ export default function InboxPage() {
     }
 
     setHasLoadedConversations(true)
+
+    async function loadRemoteConversations() {
+      try {
+        const response = await fetch("/api/contacts", {
+          credentials: "same-origin",
+        })
+
+        if (!response.ok) {
+          throw new Error(`Contacts API returned ${response.status}`)
+        }
+
+        const parsed = (await response.json()) as Conversation[]
+        if (!Array.isArray(parsed) || parsed.length === 0) {
+          throw new Error("Invalid conversations payload")
+        }
+
+        if (cancelled) {
+          return
+        }
+
+        setConversations(parsed)
+        setSelectedId((currentSelectedId) => {
+          const existingConversation = parsed.find((conversation) => conversation.id === currentSelectedId)
+          return existingConversation?.id ?? parsed[0].id
+        })
+        localStorage.setItem("inbox_conversations", JSON.stringify(parsed))
+        setBackendReady(true)
+      } catch {
+        if (!cancelled) {
+          setBackendReady(false)
+        }
+      }
+    }
+
+    void loadRemoteConversations()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -148,6 +190,23 @@ export default function InboxPage() {
 
     syncConversationsToPipelineStorage(conversations)
   }, [conversations, hasLoadedConversations])
+
+  useEffect(() => {
+    if (!hasLoadedConversations || !backendReady) {
+      return
+    }
+
+    void fetch("/api/contacts", {
+      method: "PUT",
+      credentials: "same-origin",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ contacts: conversations }),
+    }).catch((error) => {
+      console.warn("Failed to sync inbox conversations to Supabase:", error)
+    })
+  }, [backendReady, conversations, hasLoadedConversations])
 
   useEffect(() => {
     if (selectedConversation) {
