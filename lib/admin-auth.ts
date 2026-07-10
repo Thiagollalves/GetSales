@@ -1,21 +1,22 @@
 import crypto from "node:crypto"
 
 export const ADMIN_COOKIE_NAME = "getsales_admin_session"
-
-const FALLBACK_DEV_ADMIN_USERNAME = "admin"
-const FALLBACK_DEV_ADMIN_PASSWORD = "123456"
-const SESSION_PREFIX = "v1"
+const SESSION_PREFIX = "v2"
+const SESSION_TTL_SECONDS = 60 * 60 * 8
 
 function timingSafeEqualStrings(expected: string, candidate: string) {
-  if (!expected || !candidate || expected.length !== candidate.length) {
-    return false
-  }
-
+  if (!expected || !candidate || expected.length !== candidate.length) return false
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(candidate))
 }
 
 function normalizeCredential(candidate: string | null | undefined) {
   return candidate?.trim() ?? ""
+}
+
+function requiredEnv(name: string) {
+  const value = process.env[name]?.trim()
+  if (!value) throw new Error(`${name} must be configured.`)
+  return value
 }
 
 function encodeBase64Url(value: string) {
@@ -31,32 +32,23 @@ function decodeBase64Url(value: string) {
 }
 
 export function getAdminUsername() {
-  const configuredUsername = process.env.ADMIN_ACCESS_USERNAME?.trim()
-  if (configuredUsername) {
-    return configuredUsername
-  }
-
-  return FALLBACK_DEV_ADMIN_USERNAME
+  return requiredEnv("ADMIN_ACCESS_USERNAME")
 }
 
 export function getAdminPassword() {
-  const configuredPassword = process.env.ADMIN_ACCESS_TOKEN?.trim()
-  if (configuredPassword) {
-    return configuredPassword
-  }
+  return requiredEnv("ADMIN_ACCESS_TOKEN")
+}
 
-  return FALLBACK_DEV_ADMIN_PASSWORD
+function getSessionSecret() {
+  return requiredEnv("ADMIN_SESSION_SECRET")
 }
 
 export function hasAdminAccessToken() {
-  const configuredUsername = process.env.ADMIN_ACCESS_USERNAME?.trim() ?? ""
-  const configuredPassword = process.env.ADMIN_ACCESS_TOKEN?.trim() ?? ""
-
-  if (configuredUsername && configuredPassword) {
-    return true
-  }
-
-  return true
+  return Boolean(
+    process.env.ADMIN_ACCESS_USERNAME?.trim() &&
+      process.env.ADMIN_ACCESS_TOKEN?.trim() &&
+      process.env.ADMIN_SESSION_SECRET?.trim(),
+  )
 }
 
 export function getAdminAccessToken() {
@@ -64,6 +56,7 @@ export function getAdminAccessToken() {
 }
 
 export function isValidAdminAccessToken(candidate: string | null | undefined) {
+  if (!hasAdminAccessToken()) return false
   return timingSafeEqualStrings(getAdminPassword(), normalizeCredential(candidate))
 }
 
@@ -71,6 +64,7 @@ export function isValidAdminCredentials(
   candidateUsername: string | null | undefined,
   candidatePassword: string | null | undefined,
 ) {
+  if (!hasAdminAccessToken()) return false
   return (
     timingSafeEqualStrings(getAdminUsername(), normalizeCredential(candidateUsername)) &&
     timingSafeEqualStrings(getAdminPassword(), normalizeCredential(candidatePassword))
@@ -78,55 +72,55 @@ export function isValidAdminCredentials(
 }
 
 export function createAdminSessionToken(username: string) {
-  if (!hasAdminAccessToken()) {
-    throw new Error("Admin access is not configured.")
-  }
+  if (!hasAdminAccessToken()) throw new Error("Admin access is not configured.")
 
   const normalizedUsername = normalizeCredential(username)
-  if (!normalizedUsername) {
-    throw new Error("Cannot create an admin session without a username.")
-  }
+  if (!normalizedUsername) throw new Error("Cannot create an admin session without a username.")
 
+  const issuedAt = Math.floor(Date.now() / 1000)
+  const expiresAt = issuedAt + SESSION_TTL_SECONDS
+  const nonce = crypto.randomBytes(16).toString("base64url")
   const encodedUsername = encodeBase64Url(normalizedUsername)
-  const payload = `${SESSION_PREFIX}.${encodedUsername}`
-  const signature = crypto.createHmac("sha256", getAdminPassword()).update(payload).digest("base64url")
+  const payload = `${SESSION_PREFIX}.${encodedUsername}.${issuedAt}.${expiresAt}.${nonce}`
+  const signature = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("base64url")
 
   return `${payload}.${signature}`
 }
 
 export function isValidAdminSessionToken(candidate: string | null | undefined) {
-  const token = normalizeCredential(candidate)
-  if (!token) {
-    return false
-  }
+  if (!hasAdminAccessToken()) return false
 
-  const [prefix, encodedUsername, providedSignature] = token.split(".")
-  if (prefix !== SESSION_PREFIX || !encodedUsername || !providedSignature) {
-    const hasConfiguredAccessToken = Boolean(process.env.ADMIN_ACCESS_TOKEN?.trim())
-    return !hasConfiguredAccessToken && token === getAdminPassword()
-  }
+  const token = normalizeCredential(candidate)
+  const [prefix, encodedUsername, issuedAtRaw, expiresAtRaw, nonce, providedSignature] = token.split(".")
+  if (
+    prefix !== SESSION_PREFIX ||
+    !encodedUsername ||
+    !issuedAtRaw ||
+    !expiresAtRaw ||
+    !nonce ||
+    !providedSignature
+  ) return false
+
+  const issuedAt = Number(issuedAtRaw)
+  const expiresAt = Number(expiresAtRaw)
+  const now = Math.floor(Date.now() / 1000)
+  if (!Number.isSafeInteger(issuedAt) || !Number.isSafeInteger(expiresAt)) return false
+  if (issuedAt > now + 60 || expiresAt <= now || expiresAt - issuedAt > SESSION_TTL_SECONDS) return false
 
   const decodedUsername = decodeBase64Url(encodedUsername)
-  if (!decodedUsername || !timingSafeEqualStrings(getAdminUsername(), decodedUsername)) {
-    return false
-  }
+  if (!decodedUsername || !timingSafeEqualStrings(getAdminUsername(), decodedUsername)) return false
 
-  const payload = `${prefix}.${encodedUsername}`
-  const expectedSignature = crypto.createHmac("sha256", getAdminPassword()).update(payload).digest("base64url")
-
+  const payload = `${prefix}.${encodedUsername}.${issuedAtRaw}.${expiresAtRaw}.${nonce}`
+  const expectedSignature = crypto.createHmac("sha256", getSessionSecret()).update(payload).digest("base64url")
   return timingSafeEqualStrings(expectedSignature, providedSignature)
 }
 
 export function getCookieValue(cookieHeader: string | null | undefined, name: string) {
-  if (!cookieHeader) {
-    return null
-  }
-
+  if (!cookieHeader) return null
   for (const part of cookieHeader.split(";")) {
     const [rawName, ...rawValueParts] = part.trim().split("=")
     if (rawName === name) {
       const rawValue = rawValueParts.join("=")
-
       try {
         return decodeURIComponent(rawValue)
       } catch {
@@ -134,7 +128,6 @@ export function getCookieValue(cookieHeader: string | null | undefined, name: st
       }
     }
   }
-
   return null
 }
 
@@ -156,7 +149,7 @@ export function getAdminCookieOptions() {
     sameSite: "lax" as const,
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: SESSION_TTL_SECONDS,
   }
 }
 
