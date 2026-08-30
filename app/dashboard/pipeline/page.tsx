@@ -379,9 +379,9 @@ export default function PipelinePage() {
         <div className="flex items-center gap-3">
           <div className="relative">
             <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <Input placeholder="Buscar lead..." className="pl-9 w-64 bg-secondary/50" />
+            <Input aria-label="Buscar lead" placeholder="Buscar lead..." className="pl-9 w-64 bg-secondary/50" />
           </div>
-          <Button variant="outline" size="icon" className="bg-secondary/50" onClick={handleFilterClick}>
+          <Button aria-label="Filtrar pipeline" variant="outline" size="icon" className="bg-secondary/50" onClick={handleFilterClick}>
             <Filter className="h-4 w-4" />
           </Button>
           <Button className="gap-2 shadow-lg shadow-primary/20" onClick={() => handleAddLead(stages[0]?.id)}>
@@ -420,7 +420,7 @@ export default function PipelinePage() {
                   {/* Simplified Menu */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
+                      <Button aria-label={`Opções da etapa ${stage.title}`} variant="ghost" size="icon" className="h-7 w-7"><MoreHorizontal className="h-4 w-4" /></Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem onSelect={() => handleStageOptions(stage.title)}>Opções</DropdownMenuItem>
