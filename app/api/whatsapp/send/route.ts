@@ -15,6 +15,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security: Validate that phone and phoneId contain only digits to prevent SSRF and path traversal
+    if (!/^\d+$/.test(phone) || !/^\d+$/.test(resolvedPhoneId)) {
+      return NextResponse.json(
+        { error: 'Invalid format: phone and phoneId must contain only digits' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
