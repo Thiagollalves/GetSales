@@ -15,18 +15,39 @@ export async function POST(request: Request) {
       );
     }
 
-    const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
+    // Security validation to prevent SSRF and injection attacks
+    const phoneIdStr = String(resolvedPhoneId);
+    if (!/^\d+$/.test(phoneIdStr)) {
+      return NextResponse.json({ error: 'Invalid phoneId format' }, { status: 400 });
+    }
+
+    const tokenStr = String(resolvedToken);
+    if (/[\r\n]/.test(tokenStr)) {
+      return NextResponse.json({ error: 'Invalid token format' }, { status: 400 });
+    }
+
+    const apiVersionStr = String(apiVersion);
+    if (!/^v\d+\.\d+$/.test(apiVersionStr)) {
+      return NextResponse.json({ error: 'Invalid API version format' }, { status: 400 });
+    }
+
+    const phoneStr = String(phone).replace(/[\s-]/g, '');
+    if (!/^\+?\d{8,15}$/.test(phoneStr)) {
+      return NextResponse.json({ error: 'Invalid phone format' }, { status: 400 });
+    }
+
+    const url = `https://graph.facebook.com/${apiVersionStr}/${phoneIdStr}/messages`;
     
     const payload = {
       messaging_product: 'whatsapp',
-      to: phone,
+      to: phoneStr,
       text: { body: message },
     };
 
     const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${resolvedToken}`,
+        'Authorization': `Bearer ${tokenStr}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload),
