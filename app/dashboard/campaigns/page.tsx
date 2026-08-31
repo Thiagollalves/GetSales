@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,11 +26,19 @@ export default function CampaignsPage() {
     const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
 
     // Derived Audience
-    const audience = selectedTag === "all"
-        ? initialConversations
-        : initialConversations.filter(c => c.tags.includes(selectedTag));
+    // ⚡ Bolt: Memoize the audience filter to prevent O(N) array iteration on every render.
+    // Impact: Avoids recalculating the audience array when unrelated state (like activeTab or newTemplateName) changes.
+    const audience = useMemo(() => {
+        return selectedTag === "all"
+            ? initialConversations
+            : initialConversations.filter(c => c.tags.includes(selectedTag));
+    }, [selectedTag]);
 
-    const uniqueTags = Array.from(new Set(initialConversations.flatMap(c => c.tags)));
+    // ⚡ Bolt: Memoize unique tags extraction to avoid O(N) flatMap + Set conversion on every render.
+    // Impact: Runs only once since `initialConversations` is static (for now). Prevents expensive array/Set operations during re-renders.
+    const uniqueTags = useMemo(() => {
+        return Array.from(new Set(initialConversations.flatMap(c => c.tags)));
+    }, []);
 
     const handleSendCampaign = async () => {
         if (!selectedTemplate) {
