@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { initialConversations } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,10 +25,16 @@ export default function ContactsPage() {
         notifyAction("Editar contato", `Abrindo cadastro de ${name}.`);
     };
 
-    const filteredContacts = initialConversations.filter(c =>
-        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        c.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    // ⚡ Bolt: Memoized the contact list filtering and extracted the `toLowerCase()`
+    // call out of the filter loop to prevent unnecessary O(n) string allocations
+    // on every render, significantly improving search performance on large lists.
+    const filteredContacts = useMemo(() => {
+        const lowerSearch = searchTerm.toLowerCase();
+        return initialConversations.filter(c =>
+            c.name.toLowerCase().includes(lowerSearch) ||
+            c.tags.some(t => t.toLowerCase().includes(lowerSearch))
+        );
+    }, [searchTerm]);
 
     return (
         <div className="flex-1 space-y-4 p-8 pt-6">
