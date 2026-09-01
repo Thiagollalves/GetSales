@@ -4,6 +4,20 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { phone, message, token, phoneId } = body;
+
+    // Security: Require API_SECRET when using server credentials
+    if (!token || !phoneId) {
+      const authHeader = request.headers.get("Authorization");
+      const expectedToken = process.env.API_SECRET;
+
+      if (!expectedToken || authHeader !== `Bearer ${expectedToken}`) {
+        return NextResponse.json(
+          { error: "Unauthorized" },
+          { status: 401 }
+        );
+      }
+    }
+
     const resolvedToken = token ?? process.env.META_WHATSAPP_TOKEN;
     const resolvedPhoneId = phoneId ?? process.env.META_PHONE_NUMBER_ID;
     const apiVersion = process.env.META_GRAPH_API_VERSION ?? "v20.0";
@@ -13,6 +27,14 @@ export async function POST(request: Request) {
         { error: 'Missing required fields: phone, message, token, phoneId' },
         { status: 400 }
       );
+    }
+
+    // Security: Validate inputs to prevent SSRF and injection
+    if (!/^\+?\d+$/.test(phone)) {
+      return NextResponse.json({ error: "Invalid phone number" }, { status: 400 });
+    }
+    if (!/^\d+$/.test(String(resolvedPhoneId))) {
+      return NextResponse.json({ error: "Invalid phoneId" }, { status: 400 });
     }
 
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
