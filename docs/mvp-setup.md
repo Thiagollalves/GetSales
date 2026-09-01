@@ -16,6 +16,7 @@ META_WHATSAPP_TOKEN="<token-permanente>"
 META_PHONE_NUMBER_ID="<phone-number-id>"
 META_VERIFY_TOKEN="<verify-token>"
 META_GRAPH_API_VERSION="v20.0"
+API_SECRET="<um-segredo-para-proteger-a-api>"
 ```
 
 ### Webhook
@@ -66,12 +67,13 @@ Cada evento recebido da Meta será enviado com o payload completo.
 
 ## 4. Envio de mensagens
 
-A API `/api/whatsapp/send` usa as credenciais do ambiente para enviar mensagens.
+A API `/api/whatsapp/send` usa as credenciais do ambiente para enviar mensagens. Ao usar as credenciais do ambiente, é necessário autenticar com o `API_SECRET`.
 
 Exemplo:
 
 ```bash
 curl -X POST https://<sua-url>/api/whatsapp/send \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer <seu-api-secret>" \
   -d '{"phone": "5511999999999", "message": "Olá!"}'
 ```

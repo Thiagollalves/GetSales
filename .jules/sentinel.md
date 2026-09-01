@@ -1,0 +1,4 @@
+## 2024-05-24 - SSRF and Missing Auth in Proxy Endpoint
+**Vulnerability:** The `/api/whatsapp/send` endpoint lacked authentication when falling back to server environment variables, allowing unauthorized usage of the API credentials. Additionally, it accepted arbitrary user input (`phoneId`) and directly interpolated it into the Meta Graph API URL, enabling Server-Side Request Forgery (SSRF) or Path Traversal against the Meta API.
+**Learning:** Proxy endpoints that optionally accept credentials must rigorously authenticate requests when falling back to server-stored secrets. Furthermore, any input used to construct an outgoing URL must be strictly validated.
+**Prevention:** Always require an `Authorization` header with a secure secret (e.g., `API_SECRET`) on endpoints that act as proxies using server secrets. Apply strict input validation (e.g., regex `^\d+$`) for variables like `phoneId` that are interpolated into URLs.
