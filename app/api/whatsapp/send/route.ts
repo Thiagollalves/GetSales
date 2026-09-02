@@ -15,6 +15,20 @@ export async function POST(request: Request) {
       );
     }
 
+    // 🛡️ Security Fix: Prevent Open Relay vulnerability
+    // Require API_SECRET authentication when falling back to server-stored credentials
+    if (!token) {
+      const apiSecret = process.env.API_SECRET;
+      const clientSecret = request.headers.get('x-api-secret') || request.headers.get('authorization')?.replace('Bearer ', '');
+
+      if (!apiSecret || clientSecret !== apiSecret) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
