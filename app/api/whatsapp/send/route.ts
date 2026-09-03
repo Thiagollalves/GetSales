@@ -15,6 +15,26 @@ export async function POST(request: Request) {
       );
     }
 
+    // 🛡️ Sentinel: Prevent Open Relay
+    // If relying on server-side credentials, enforce API_SECRET check
+    if (!token || !phoneId) {
+      if (!process.env.API_SECRET) {
+        console.error('CRITICAL: API_SECRET is not configured for WhatsApp proxy fallback.');
+        return NextResponse.json(
+          { error: 'Internal Server Error: Missing required configuration' },
+          { status: 500 }
+        );
+      }
+      const authHeader = request.headers.get('authorization');
+      const expectedAuth = `Bearer ${process.env.API_SECRET}`;
+      if (!authHeader || authHeader !== expectedAuth) {
+        return NextResponse.json(
+          { error: 'Unauthorized: Invalid API_SECRET for proxy request' },
+          { status: 401 }
+        );
+      }
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
