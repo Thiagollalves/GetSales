@@ -3,7 +3,29 @@ import { NextResponse } from 'next/server';
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { phone, message, token, phoneId } = body;
+    const { phone, message, token, phoneId, apiSecret } = body;
+
+    // Security fix: Prevent open relay SSRF when falling back to server credentials
+    const isUsingServerToken = !token;
+    if (isUsingServerToken) {
+      const serverApiSecret = process.env.API_SECRET;
+
+      if (!serverApiSecret) {
+        return NextResponse.json(
+          { error: 'Server configuration error' },
+          { status: 500 }
+        );
+      }
+
+      const providedSecret = request.headers.get('x-api-secret') || apiSecret;
+      if (providedSecret !== serverApiSecret) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
     const resolvedToken = token ?? process.env.META_WHATSAPP_TOKEN;
     const resolvedPhoneId = phoneId ?? process.env.META_PHONE_NUMBER_ID;
     const apiVersion = process.env.META_GRAPH_API_VERSION ?? "v20.0";
