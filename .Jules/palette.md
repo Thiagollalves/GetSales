@@ -1,0 +1,3 @@
+## 2025-02-25 - Missing ARIA Labels on Icon-Only Buttons
+**Learning:** Icon-only buttons lacking `aria-label` attributes are a very common pattern throughout this application's components (found across dashboard header, conversation lists, and chat windows). This prevents screen readers from understanding the button's purpose, completely breaking accessibility for core interactive features.
+**Action:** When adding or modifying interactive UI elements, proactively audit icon-only buttons for missing `aria-label` attributes (localized in Portuguese) to ensure proper screen reader support.
