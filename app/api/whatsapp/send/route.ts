@@ -4,6 +4,32 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { phone, message, token, phoneId } = body;
+
+    // SECURITY: If relying on server-stored credentials, we MUST authenticate the client
+    // using an API_SECRET to prevent an open relay / SSRF vulnerability.
+    const isUsingServerCredentials = !token || !phoneId;
+    if (isUsingServerCredentials) {
+      const apiSecret = process.env.API_SECRET;
+
+      // Fail securely if API_SECRET is not configured
+      if (!apiSecret) {
+        console.error('CRITICAL: API_SECRET is not configured for WhatsApp send endpoint fallback.');
+        return NextResponse.json(
+          { error: 'Internal Server Error' },
+          { status: 500 }
+        );
+      }
+
+      // Check if the request provided the correct API_SECRET
+      const authHeader = request.headers.get('Authorization');
+      if (authHeader !== `Bearer ${apiSecret}`) {
+        return NextResponse.json(
+          { error: 'Unauthorized' },
+          { status: 401 }
+        );
+      }
+    }
+
     const resolvedToken = token ?? process.env.META_WHATSAPP_TOKEN;
     const resolvedPhoneId = phoneId ?? process.env.META_PHONE_NUMBER_ID;
     const apiVersion = process.env.META_GRAPH_API_VERSION ?? "v20.0";
