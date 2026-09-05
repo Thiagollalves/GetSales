@@ -1,0 +1,4 @@
+## 2024-11-20 - WhatsApp API Open Relay / SSRF
+**Vulnerability:** The WhatsApp message sending endpoint (`/api/whatsapp/send`) allowed unauthenticated clients to trigger messages using the server's Meta API credentials. This acted as an open relay and SSRF vector where anyone could send WhatsApp messages from the server's configured account.
+**Learning:** API routes that act as proxies to third-party services and rely on server-stored credentials must implement their own authentication layer for client requests. Relying purely on the proxy-to-service authentication is insufficient if the client-to-proxy connection is unsecured.
+**Prevention:** Implement an `API_SECRET` check for any request that falls back to server-side credentials. Furthermore, fail securely (e.g., return a 500 error) if this secret is not configured, rather than failing open and allowing unauthenticated requests.
