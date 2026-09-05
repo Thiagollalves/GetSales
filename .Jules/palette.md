@@ -1,0 +1,1 @@
+## 2024-05-18 - Missing ARIA labels in chat window\n**Learning:** Icon-only buttons in interactive components like chat windows frequently lack `aria-label` attributes, making them inaccessible to screen reader users.\n**Action:** Add descriptive `aria-label` attributes in Portuguese to all icon-only buttons in `chat-window.tsx`.
