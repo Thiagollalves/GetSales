@@ -1,0 +1,3 @@
+## 2024-05-24 - [Icon-only Buttons Accessibility Pattern]
+**Learning:** The application uses icon-only buttons extensively (like the Filter button in the conversation list, or various action buttons in the chat window). These often lack `aria-label` attributes, which is an accessibility issue pattern specific to this app's components, making it difficult for screen readers to interpret the button's purpose. The language of the app is Portuguese, so the aria-labels must also be in Portuguese.
+**Action:** Proactively check all icon-only buttons (`<Button size="icon">` with only an icon child) across the dashboard components and ensure they have a descriptive `aria-label` matching the localized language (Portuguese).
