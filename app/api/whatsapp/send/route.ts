@@ -4,6 +4,28 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const { phone, message, token, phoneId } = body;
+
+    // Security Check: If falling back to server-stored credentials, require API_SECRET authentication
+    // This prevents unauthenticated users from using our backend as an open relay for WhatsApp messages.
+    if (!token || !phoneId) {
+      const authHeader = request.headers.get('authorization');
+      const apiSecret = process.env.API_SECRET;
+
+      if (!apiSecret) {
+        return NextResponse.json(
+          { error: 'Server misconfiguration: API_SECRET is not set' },
+          { status: 500 }
+        );
+      }
+
+      if (!authHeader || authHeader !== `Bearer ${apiSecret}`) {
+        return NextResponse.json(
+          { error: 'Unauthorized access to server credentials' },
+          { status: 401 }
+        );
+      }
+    }
+
     const resolvedToken = token ?? process.env.META_WHATSAPP_TOKEN;
     const resolvedPhoneId = phoneId ?? process.env.META_PHONE_NUMBER_ID;
     const apiVersion = process.env.META_GRAPH_API_VERSION ?? "v20.0";
