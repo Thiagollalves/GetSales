@@ -27,7 +27,7 @@ export function DashboardHeader() {
         </div>
       </div>
       <div className="flex items-center gap-3">
-        <Button variant="outline" size="icon" className="relative bg-transparent" onClick={handleNotifications}>
+        <Button variant="outline" size="icon" aria-label="Notificações" className="relative bg-transparent" onClick={handleNotifications}>
           <Bell className="h-4 w-4" />
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-destructive text-destructive-foreground text-xs rounded-full flex items-center justify-center">
             3

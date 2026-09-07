@@ -31,7 +31,7 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
       <div className="p-4 border-b border-border space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="font-semibold">Inbox</h2>
-          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleFilter}>
+          <Button variant="ghost" size="icon" aria-label="Filtros" className="h-8 w-8" onClick={handleFilter}>
             <Filter className="h-4 w-4" />
           </Button>
         </div>
