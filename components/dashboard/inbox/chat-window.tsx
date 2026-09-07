@@ -1,7 +1,7 @@
 "use client"
 
 import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useState, useRef, useEffect, type ChangeEvent, memo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -317,7 +317,9 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   )
 }
 
-function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
+// ⚡ Bolt: Wrap MessageBubble in React.memo to prevent O(N) re-renders
+// on every keystroke when typing a new message in the chat input.
+const MessageBubble = memo(function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
   const isContact = message.sender === "contact"
   const isBot = message.sender === "bot"
 
@@ -388,4 +390,4 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
       </div>
     </div>
   )
-}
+})
