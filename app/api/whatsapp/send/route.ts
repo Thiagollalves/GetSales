@@ -15,6 +15,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // SECURITY: Input validation to prevent SSRF and injection attacks
+    const phoneRegex = /^\d{1,20}$/;
+    if (typeof phone !== 'string' || !phoneRegex.test(phone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof resolvedPhoneId !== 'string' || !phoneRegex.test(resolvedPhoneId)) {
+      return NextResponse.json(
+        { error: 'Invalid phoneId format' },
+        { status: 400 }
+      );
+    }
+
+    if (typeof message !== 'string' || message.trim() === '') {
+      return NextResponse.json(
+        { error: 'Invalid message format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
