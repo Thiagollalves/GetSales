@@ -1,0 +1,14 @@
+
+> my-v0-project@0.1.0 dev
+> next dev
+
+   ▲ Next.js 16.0.10 (Turbopack)
+   - Local:         http://localhost:3000
+   - Network:       http://192.168.0.2:3000
+
+ ✓ Starting...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Ready in 768ms
+ ○ Compiling /dashboard ...
+ GET /dashboard 200 in 4.5s (compile: 4.0s, render: 575ms)
+ GET /dashboard/inbox 200 in 3.5s (compile: 3.0s, render: 479ms)

@@ -1,0 +1,3 @@
+## 2025-02-23 - Icon-only Buttons Missing ARIA Labels
+**Learning:** A significant accessibility issue pattern in this app's components is that icon-only buttons (using `size="icon"`) often lack `aria-label` attributes. This makes navigation and interaction difficult for users relying on screen readers.
+**Action:** When adding or modifying icon-only buttons, always ensure an appropriate localized `aria-label` is included. Proactively review existing components to identify and patch missing labels.
