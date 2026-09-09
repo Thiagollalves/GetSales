@@ -1,7 +1,7 @@
 "use client"
 
 import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useState, useRef, useEffect, memo, type ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -317,7 +317,10 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   )
 }
 
-function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
+// ⚡ Bolt Performance Optimization:
+// Memoizing MessageBubble prevents O(N) re-renders of the entire message history
+// when the user types in the input field, since the parent ChatWindow state updates on every keystroke.
+const MessageBubble = memo(function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
   const isContact = message.sender === "contact"
   const isBot = message.sender === "bot"
 
@@ -388,4 +391,4 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
       </div>
     </div>
   )
-}
+})
