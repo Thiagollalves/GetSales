@@ -15,6 +15,19 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security Enhancement: Validate inputs to prevent SSRF and injection
+    const phoneRegex = /^\d{1,20}$/; // Only digits, max 20 chars
+    const phoneIdRegex = /^\d{1,30}$/; // Only digits for phone number ID
+    const apiVersionRegex = /^v\d{1,2}\.\d{1,2}$/; // Format like v20.0
+
+    if (!phoneRegex.test(String(phone)) || !phoneIdRegex.test(String(resolvedPhoneId)) || !apiVersionRegex.test(String(apiVersion))) {
+      console.error('Invalid input format detected', { phone, resolvedPhoneId, apiVersion });
+      return NextResponse.json(
+        { error: 'Invalid input format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
