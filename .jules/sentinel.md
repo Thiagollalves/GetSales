@@ -1,0 +1,4 @@
+## 2024-10-24 - SSRF and Injection Risks in WhatsApp API Proxy
+**Vulnerability:** The `/api/whatsapp/send` proxy endpoint accepted raw `phone`, `phoneId`, and `apiVersion` inputs directly from user requests (or environment variables) and interpolated them into the external WhatsApp Cloud API URL and payload without validation.
+**Learning:** Even when interacting with trusted third-party APIs (like Facebook/Meta Graph API), any parameter that influences the request URL or payload must be strictly validated. Allowing unvalidated user input to dictate parts of the URL can lead to SSRF (Server-Side Request Forgery) or parameter injection, enabling attackers to make arbitrary requests or bypass intended restrictions.
+**Prevention:** Always apply strict allowlist or format validation (e.g., regex matching for expected formats like digits only for phone numbers and IDs) to any dynamic inputs used to construct outgoing URLs or request payloads in backend proxies.
