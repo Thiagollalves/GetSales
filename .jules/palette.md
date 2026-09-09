@@ -1,0 +1,3 @@
+## 2025-02-12 - Missing Localization in ARIA labels on Icon Buttons
+**Learning:** Icon-only buttons used across standard dashboard components (like header and chat windows) often lack screen-reader accessibility labels, making the application heavily reliant on visual cues. Given the app is localized in Portuguese, adding `aria-label` attributes to these buttons is critical for ensuring inclusivity for screen reader users and must match the local language (Portuguese).
+**Action:** Always verify if an icon-only button is accompanied by an appropriate localized `aria-label` (e.g. `aria-label="Enviar mensagem"`) to guarantee accessibility.
