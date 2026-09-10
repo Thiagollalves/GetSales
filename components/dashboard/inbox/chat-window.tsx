@@ -179,6 +179,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="text-muted-foreground hover:text-foreground"
             onClick={handleStartCall}
+            aria-label="Iniciar chamada de voz"
           >
             <Phone className="h-4 w-4" />
           </Button>
@@ -187,6 +188,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="text-muted-foreground hover:text-foreground"
             onClick={handleStartVideo}
+            aria-label="Iniciar chamada de vídeo"
           >
             <Video className="h-4 w-4" />
           </Button>
@@ -195,6 +197,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             onClick={onToggleProfile}
             className="text-muted-foreground hover:text-foreground"
+            aria-label="Ver perfil do usuário"
           >
             <User className="h-4 w-4" />
           </Button>
@@ -203,6 +206,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="text-muted-foreground hover:text-foreground"
             onClick={handleMoreOptions}
+            aria-label="Mais opções"
           >
             <MoreVertical className="h-4 w-4" />
           </Button>
@@ -243,6 +247,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
             onClick={handleAttachFile}
+            aria-label="Anexar arquivo"
           >
             <Paperclip className="h-4 w-4" />
           </Button>
@@ -251,6 +256,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
             onClick={handleAttachImage}
+            aria-label="Anexar imagem ou vídeo"
           >
             <ImageIcon className="h-4 w-4" />
           </Button>
@@ -266,6 +272,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
             onClick={handleEmojiPicker}
+            aria-label="Inserir emoji"
           >
             <Smile className="h-4 w-4" />
           </Button>
@@ -300,6 +307,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             size="icon"
             className="shrink-0 h-9 w-9 text-muted-foreground hover:text-primary"
             onClick={handleVoiceNote}
+            aria-label={isRecording ? "Parar gravação de voz" : "Gravar mensagem de voz"}
           >
             <Mic className={`h-4 w-4 ${isRecording ? "text-destructive" : ""}`} />
           </Button>
@@ -308,6 +316,7 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
             onClick={handleSend}
             disabled={!message.trim()}
             className="shrink-0 h-9 w-9 shadow-lg shadow-primary/20"
+            aria-label="Enviar mensagem"
           >
             <Send className="h-4 w-4" />
           </Button>
