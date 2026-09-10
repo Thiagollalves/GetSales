@@ -1,0 +1,3 @@
+## 2024-11-20 - Prevent O(N) re-renders in Message List Components
+**Learning:** In the multi-channel dashboard inbox, frequently changing local state (such as typing in the chat input field) triggers a re-render of the entire component tree. When dealing with long lists of messages (or other repeating components), this causes an O(N) performance bottleneck because every single message component is unnecessarily re-rendered on every keystroke.
+**Action:** Always wrap list elements that do not depend on the changing local state (like `MessageBubble` in `chat-window.tsx`) with `React.memo()`. This ensures they only re-render when their specific props change, significantly improving responsiveness during user input.
