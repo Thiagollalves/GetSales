@@ -15,6 +15,18 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security: Validate inputs before interpolating into the URL or payload to prevent SSRF and Injection
+    const phoneRegex = /^\d{1,15}$/;
+    const phoneIdRegex = /^\d{1,25}$/;
+    const apiVersionRegex = /^v\d{1,2}\.\d$/;
+
+    if (!phoneRegex.test(phone) || !phoneIdRegex.test(resolvedPhoneId) || !apiVersionRegex.test(apiVersion)) {
+      return NextResponse.json(
+        { error: 'Invalid input format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
