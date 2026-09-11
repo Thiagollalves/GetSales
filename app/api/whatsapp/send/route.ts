@@ -15,6 +15,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security: Validate inputs to prevent SSRF and injection attacks
+    if (!/^\d+$/.test(String(resolvedPhoneId))) {
+      return NextResponse.json(
+        { error: 'Invalid phoneId format' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^\+?\d+$/.test(String(phone))) {
+      return NextResponse.json(
+        { error: 'Invalid phone format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
