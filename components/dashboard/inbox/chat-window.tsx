@@ -1,7 +1,7 @@
 "use client"
 
 import type { Conversation, Message, Attachment } from "@/app/dashboard/inbox/page"
-import { useState, useRef, useEffect, type ChangeEvent } from "react"
+import { useState, useRef, useEffect, memo, type ChangeEvent } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -317,7 +317,11 @@ export function ChatWindow({ conversation, onToggleProfile, onSendMessage }: Cha
   )
 }
 
-function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
+// ⚡ Bolt Performance Optimization:
+// Wrapping MessageBubble with React.memo prevents O(N) re-renders
+// across the entire conversation history when the user types in the input field,
+// ensuring only new messages or the chat window itself re-renders on state changes.
+const MessageBubble = memo(function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolean }) {
   const isContact = message.sender === "contact"
   const isBot = message.sender === "bot"
 
@@ -388,4 +392,4 @@ function MessageBubble({ message, isFirst }: { message: Message; isFirst: boolea
       </div>
     </div>
   )
-}
+})
