@@ -1,0 +1,3 @@
+## 2024-05-17 - Missing ARIA Labels on Icon-Only Buttons
+**Learning:** Found an accessibility issue pattern in the app's components, specifically in `chat-window.tsx`, where icon-only buttons lacked `aria-label`s. This makes it difficult for screen readers to convey the purpose of these buttons to visually impaired users. Also, since the application is localized in Portuguese, the ARIA labels should match the local language (e.g., `aria-label="Enviar mensagem"` instead of `aria-label="Send message"`).
+**Action:** Always add descriptive `aria-label` attributes to icon-only buttons to ensure they are accessible via screen readers, and make sure the labels match the application's localization language (Portuguese).
