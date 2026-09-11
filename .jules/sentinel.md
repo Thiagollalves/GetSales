@@ -1,0 +1,4 @@
+## 2024-11-20 - [Input Validation in Backend Proxies]
+**Vulnerability:** Backend proxy endpoints (like `app/api/whatsapp/send/route.ts`) were directly interpolating user-provided inputs (`phoneId`, `phone`) into third-party API URLs and request payloads without any validation. This created a severe Server-Side Request Forgery (SSRF) and injection risk, especially since these routes are called directly by the frontend and can be easily manipulated.
+**Learning:** Even internal backend proxy routes must strictly validate their inputs, as they act as a gateway to external services. If an attacker injects arbitrary paths into the `phoneId`, they could interact with unintended Graph API endpoints using the application's authentication token.
+**Prevention:** Always implement strict type and format validation (e.g., regex testing for purely numeric values) on all parameters before they are interpolated into URLs or used in sensitive contexts.
