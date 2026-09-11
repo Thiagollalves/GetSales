@@ -1,0 +1,3 @@
+## 2024-05-24 - Prevent O(N) Re-renders in Message Lists
+**Learning:** In the chat application, the main `ChatWindow` component contains a `message` state for text input. Because this state updates on every keystroke, the entire component re-renders. If the component list (`MessageBubble` elements) relies on this state, it causes an O(N) performance bottleneck where every keystroke re-renders the entire conversation history.
+**Action:** Use `React.memo` to wrap list components that render large sets of data, ensuring they only re-render when their specific props change, preventing cascading re-renders caused by frequent local state updates like text inputs.
