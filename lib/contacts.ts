@@ -181,16 +181,19 @@ function cloneLeadTimelineItem(item: NonNullable<Conversation["timeline"]>[numbe
 }
 
 export function cloneContact(contact: Conversation): Conversation {
-  return {
+  const result: Conversation = {
     ...contact,
     tags: [...contact.tags],
     messages: contact.messages.map(cloneMessage),
-    internalNotes: contact.internalNotes ? contact.internalNotes.map(cloneNote) : undefined,
-    customFields: contact.customFields ? contact.customFields.map((field) => ({ ...field })) : undefined,
-    media: contact.media ? contact.media.map(cloneLeadMediaItem) : undefined,
-    botBindings: contact.botBindings ? contact.botBindings.map(cloneLeadBotBinding) : undefined,
-    timeline: contact.timeline ? contact.timeline.map(cloneLeadTimelineItem) : undefined,
   }
+
+  if (contact.internalNotes) result.internalNotes = contact.internalNotes.map(cloneNote)
+  if (contact.customFields) result.customFields = contact.customFields.map((field) => ({ ...field }))
+  if (contact.media) result.media = contact.media.map(cloneLeadMediaItem)
+  if (contact.botBindings) result.botBindings = contact.botBindings.map(cloneLeadBotBinding)
+  if (contact.timeline) result.timeline = contact.timeline.map(cloneLeadTimelineItem)
+
+  return result
 }
 
 export function cloneContacts(contacts: Conversation[]) {
