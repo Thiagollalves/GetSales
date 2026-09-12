@@ -1,0 +1,4 @@
+## 2024-06-25 - Prevent SSRF and Injection via API Routing Validation
+**Vulnerability:** User-controlled inputs (`phoneId` and `phone`) in the Next.js WhatsApp proxy endpoint were being directly interpolated into external API URLs and payloads without proper validation.
+**Learning:** This exposes the application to Server-Side Request Forgery (SSRF) and injection attacks, where a malicious user could manipulate the `phoneId` to hit unintended endpoints on the external API, or craft a `phone` payload to exploit downstream systems. Because the frontend directly calls this proxy route, inputs must be treated with zero trust.
+**Prevention:** Strictly validate all parameters that formulate third-party API requests using regex matching (e.g., ensuring `phoneId` contains only digits and `phone` adheres to E.164 format) before URL interpolation.
