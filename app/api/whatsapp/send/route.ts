@@ -15,6 +15,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security: Validate inputs to prevent SSRF and injection attacks
+    if (!/^\+?\d{7,15}$/.test(phone)) {
+      return NextResponse.json(
+        { error: 'Invalid phone number format' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^\d+$/.test(resolvedPhoneId)) {
+      return NextResponse.json(
+        { error: 'Invalid phone ID format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
