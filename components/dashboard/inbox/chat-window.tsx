@@ -72,149 +72,67 @@ interface ChatWindowProps {
   isInspectorOpen: boolean
 }
 
-export function ChatWindow({
+function ChatWindowEmpty({
+  onCreateConversation,
+  onSearchConversation,
+}: {
+  onCreateConversation?: () => void
+  onSearchConversation?: () => void
+}) {
+  return (
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
+      <div className="flex flex-1 items-center justify-center px-4 py-8 text-center sm:px-6">
+        <div className="max-w-md space-y-3">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
+            Workspace da conversa
+          </p>
+          <h2 className="text-2xl font-semibold text-foreground">Selecione uma conversa para atender</h2>
+          <p className="text-sm leading-6 text-muted-foreground">
+            A fila da esquerda mostra os atendimentos disponíveis. Quando você escolher um contato, a conversa,
+            as notas internas e o contexto aparecem aqui.
+          </p>
+          <div className="flex flex-wrap justify-center gap-2 pt-2">
+            {onCreateConversation ? (
+              <Button className="rounded-full" onClick={onCreateConversation}>
+                Nova conversa
+              </Button>
+            ) : null}
+            <Button variant="outline" className="rounded-full bg-transparent" onClick={onSearchConversation}>
+              <Search className="mr-2 h-4 w-4" />
+              Buscar
+            </Button>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ChatWindowHeader({
   conversation,
   onBackToList,
   onToggleInspector,
-  onSendMessage,
   onCloseConversation,
   onReturnConversation,
   onTransferConversation,
-  onCreateConversation,
   onSearchConversation,
   onOpenShortcuts,
   onOpenInternalChat,
   isInspectorOpen,
-}: ChatWindowProps) {
-  const [message, setMessage] = useState("")
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
-  const [isRecording, setIsRecording] = useState(false)
+}: {
+  conversation: Conversation
+  onBackToList?: () => void
+  onToggleInspector: () => void
+  onCloseConversation?: (payload: LeadCloseTicketPayload) => void
+  onReturnConversation?: () => void
+  onTransferConversation?: () => void
+  onSearchConversation?: () => void
+  onOpenShortcuts?: () => void
+  onOpenInternalChat?: () => void
+  isInspectorOpen: boolean
+}) {
   const [isContextExpanded, setIsContextExpanded] = useState(true)
   const [isCloseTicketOpen, setIsCloseTicketOpen] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const mediaInputRef = useRef<HTMLInputElement>(null)
-  const recorderRef = useRef<MediaRecorder | null>(null)
-  const recorderChunksRef = useRef<Blob[]>([])
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [conversation?.messages])
-
-  useEffect(() => {
-    setMessage("")
-    setShowEmojiPicker(false)
-    setIsRecording(false)
-    setIsContextExpanded(true)
-    setIsCloseTicketOpen(false)
-  }, [conversation?.id])
-
-  const handleSend = () => {
-    if (!message.trim()) return
-    if (onSendMessage && conversation) {
-      onSendMessage({ text: message })
-    }
-    setMessage("")
-  }
-
-  const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
-    if (onSendMessage && conversation) {
-      onSendMessage({ text: fallbackText, attachment })
-    }
-  }
-
-  const handleAttachFile = () => {
-    fileInputRef.current?.click()
-  }
-
-  const handleAttachImage = () => {
-    mediaInputRef.current?.click()
-  }
-
-  const handleEmojiPicker = () => {
-    setShowEmojiPicker((previous) => !previous)
-  }
-
-  const handleVoiceNote = async () => {
-    if (isRecording) {
-      recorderRef.current?.stop()
-      return
-    }
-
-    if (!navigator.mediaDevices?.getUserMedia) {
-      notifyAction("Áudio indisponível", "Seu navegador não suporta gravação de áudio.")
-      return
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const recorder = new MediaRecorder(stream)
-      recorderRef.current = recorder
-      recorderChunksRef.current = []
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          recorderChunksRef.current.push(event.data)
-        }
-      }
-      recorder.onstop = () => {
-        const audioBlob = new Blob(recorderChunksRef.current, { type: "audio/webm" })
-        const url = URL.createObjectURL(audioBlob)
-        handleSendAttachment({ type: "audio", url, name: "audio.webm" }, "Áudio enviado")
-        stream.getTracks().forEach((track) => track.stop())
-        recorderRef.current = null
-        recorderChunksRef.current = []
-        setIsRecording(false)
-      }
-      recorder.start()
-      setIsRecording(true)
-    } catch {
-      notifyAction("Permissão negada", "Não foi possível acessar o microfone.")
-    }
-  }
-
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, type: "file" | "image" | "video") => {
-    const file = event.target.files?.[0]
-    if (!file) return
-    const url = URL.createObjectURL(file)
-    handleSendAttachment({ type, url, name: file.name }, `Arquivo enviado: ${file.name}`)
-    event.target.value = ""
-  }
-
-  const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
-  const insertEmoji = (emoji: string) => {
-    setMessage((previous) => `${previous}${emoji}`)
-    setShowEmojiPicker(false)
-  }
-
-  if (!conversation) {
-    return (
-      <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(249,246,239,0.9))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
-        <div className="flex flex-1 items-center justify-center px-4 py-8 text-center sm:px-6">
-          <div className="max-w-md space-y-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.35em] text-muted-foreground">
-              Workspace da conversa
-            </p>
-            <h2 className="text-2xl font-semibold text-foreground">Selecione uma conversa para atender</h2>
-            <p className="text-sm leading-6 text-muted-foreground">
-              A fila da esquerda mostra os atendimentos disponíveis. Quando você escolher um contato, a conversa,
-              as notas internas e o contexto aparecem aqui.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              {onCreateConversation ? (
-                <Button className="rounded-full" onClick={onCreateConversation}>
-                  Nova conversa
-                </Button>
-              ) : null}
-              <Button variant="outline" className="rounded-full bg-transparent" onClick={onSearchConversation}>
-                <Search className="mr-2 h-4 w-4" />
-                Buscar
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-    )
-  }
 
   const priority = getConversationPriority(conversation)
   const headerSummaryItems = useMemo(
@@ -240,7 +158,7 @@ export function ChatWindow({
   )
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
+    <>
       <header className="border-b border-border/60 bg-background/70 px-2 py-1.5 backdrop-blur sm:px-5 sm:py-4">
         <div className="mb-1.5 flex items-center gap-2 xl:hidden">
           <Button
@@ -447,134 +365,288 @@ export function ChatWindow({
         onOpenChange={setIsCloseTicketOpen}
         onConfirm={(payload) => onCloseConversation?.(payload)}
       />
+    </>
+  )
+}
 
-      <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-2 py-3 sm:px-5 sm:py-6">
-        <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:gap-4">
-          {conversation.messages.map((message, index) => (
-            <MessageBubble
-              key={message.id}
-              message={message}
-              isFirst={index === 0}
-              contactName={conversation.name}
-            />
-          ))}
-          <div ref={messagesEndRef} />
-        </div>
+function ChatWindowMessageList({ conversation }: { conversation: Conversation }) {
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [conversation.messages])
+
+  return (
+    <div className="flex-1 min-h-0 overflow-y-auto bg-[linear-gradient(180deg,rgba(249,247,242,0.96),rgba(255,255,255,0.98))] px-2 py-3 sm:px-5 sm:py-6">
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-3 sm:gap-4">
+        {conversation.messages.map((message, index) => (
+          <MessageBubble
+            key={message.id}
+            message={message}
+            isFirst={index === 0}
+            contactName={conversation.name}
+          />
+        ))}
+        <div ref={messagesEndRef} />
       </div>
+    </div>
+  )
+}
 
-      <div className="border-t border-border/60 bg-background/85 px-2 py-2 backdrop-blur sm:px-5 sm:py-4">
-        <div className="space-y-2 sm:space-y-4">
-          <section className="rounded-[20px] border border-border/60 bg-background/80 p-2 shadow-sm sm:rounded-[24px] sm:p-4">
-            <div className="space-y-2">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={handleAttachFile}
-                >
-                  <Paperclip className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={handleAttachImage}
-                >
-                  <ImageIcon className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={handleEmojiPicker}
-                >
-                  <Smile className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={() => notifyAction("Localização", "Atalho de localização em breve.")}
-                  title="Localização"
-                >
-                  <MapPin className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                  onClick={handleVoiceNote}
-                >
-                  <Mic className={`h-3.5 w-3.5 ${isRecording ? "text-destructive" : ""}`} />
-                </Button>
-                <div className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground md:flex">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
-                  O time vê tudo em tempo real
-                </div>
+function ChatWindowInput({
+  onSendMessage,
+}: {
+  onSendMessage?: (payload: { text?: string; attachment?: Attachment }) => void
+}) {
+  const [message, setMessage] = useState("")
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
+  const recorderRef = useRef<MediaRecorder | null>(null)
+  const recorderChunksRef = useRef<Blob[]>([])
+
+  const handleSend = () => {
+    if (!message.trim()) return
+    if (onSendMessage) {
+      onSendMessage({ text: message })
+    }
+    setMessage("")
+  }
+
+  const handleSendAttachment = (attachment: Attachment, fallbackText?: string) => {
+    if (onSendMessage) {
+      onSendMessage({ text: fallbackText, attachment })
+    }
+  }
+
+  const handleAttachFile = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAttachImage = () => {
+    mediaInputRef.current?.click()
+  }
+
+  const handleEmojiPicker = () => {
+    setShowEmojiPicker((previous) => !previous)
+  }
+
+  const handleVoiceNote = async () => {
+    if (isRecording) {
+      recorderRef.current?.stop()
+      return
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      notifyAction("Áudio indisponível", "Seu navegador não suporta gravação de áudio.")
+      return
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const recorder = new MediaRecorder(stream)
+      recorderRef.current = recorder
+      recorderChunksRef.current = []
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recorderChunksRef.current.push(event.data)
+        }
+      }
+      recorder.onstop = () => {
+        const audioBlob = new Blob(recorderChunksRef.current, { type: "audio/webm" })
+        const url = URL.createObjectURL(audioBlob)
+        handleSendAttachment({ type: "audio", url, name: "audio.webm" }, "Áudio enviado")
+        stream.getTracks().forEach((track) => track.stop())
+        recorderRef.current = null
+        recorderChunksRef.current = []
+        setIsRecording(false)
+      }
+      recorder.start()
+      setIsRecording(true)
+    } catch {
+      notifyAction("Permissão negada", "Não foi possível acessar o microfone.")
+    }
+  }
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>, type: "file" | "image" | "video") => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    handleSendAttachment({ type, url, name: file.name }, `Arquivo enviado: ${file.name}`)
+    event.target.value = ""
+  }
+
+  const emojiList = ["😀", "😁", "😂", "😍", "😎", "🤔", "👍", "🙏", "🎉", "🔥", "✅", "💬"]
+  const insertEmoji = (emoji: string) => {
+    setMessage((previous) => `${previous}${emoji}`)
+    setShowEmojiPicker(false)
+  }
+
+  return (
+    <div className="border-t border-border/60 bg-background/85 px-2 py-2 backdrop-blur sm:px-5 sm:py-4">
+      <div className="space-y-2 sm:space-y-4">
+        <section className="rounded-[20px] border border-border/60 bg-background/80 p-2 shadow-sm sm:rounded-[24px] sm:p-4">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={handleAttachFile}
+              >
+                <Paperclip className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={handleAttachImage}
+              >
+                <ImageIcon className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={handleEmojiPicker}
+              >
+                <Smile className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={() => notifyAction("Localização", "Atalho de localização em breve.")}
+                title="Localização"
+              >
+                <MapPin className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+                onClick={handleVoiceNote}
+              >
+                <Mic className={`h-3.5 w-3.5 ${isRecording ? "text-destructive" : ""}`} />
+              </Button>
+              <div className="ml-auto hidden items-center gap-2 text-xs text-muted-foreground md:flex">
+                <span className="inline-flex h-2 w-2 rounded-full bg-primary" />
+                O time vê tudo em tempo real
               </div>
-
-              <div className="relative flex flex-row items-end gap-2 rounded-[20px] border border-border/70 bg-background/90 px-2 py-2 shadow-sm sm:gap-3 sm:px-3 sm:py-3">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  onChange={(event) => handleFileChange(event, "file")}
-                />
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    if (!file) return
-                    const attachmentType = file.type.startsWith("video") ? "video" : "image"
-                    handleFileChange(event, attachmentType)
-                  }}
-                />
-
-                <Input
-                  value={message}
-                  onChange={(event) => setMessage(event.target.value)}
-                  placeholder="Digite sua mensagem..."
-                  className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0"
-                  onKeyDown={(event) => event.key === "Enter" && !event.shiftKey && handleSend()}
-                  aria-label="Mensagem"
-                />
-
-                <Button
-                  size="sm"
-                  onClick={handleSend}
-                  disabled={!message.trim()}
-                  className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 sm:px-5"
-                >
-                  <Send className="mr-2 h-4 w-4" />
-                  Enviar
-                  <ChevronDown className="ml-2 hidden h-4 w-4 opacity-70 sm:inline-flex" />
-                </Button>
-              </div>
-
-              {showEmojiPicker ? (
-                <div className="rounded-[22px] border border-border/60 bg-background/95 p-3 shadow-lg">
-                  <div className="grid grid-cols-6 gap-2">
-                    {emojiList.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        className="h-9 w-9 rounded-xl text-lg transition-colors hover:bg-secondary"
-                        onClick={() => insertEmoji(emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
             </div>
-          </section>
-        </div>
+
+            <div className="relative flex flex-row items-end gap-2 rounded-[20px] border border-border/70 bg-background/90 px-2 py-2 shadow-sm sm:gap-3 sm:px-3 sm:py-3">
+              <input
+                ref={fileInputRef}
+                type="file"
+                className="hidden"
+                onChange={(event) => handleFileChange(event, "file")}
+              />
+              <input
+                ref={mediaInputRef}
+                type="file"
+                accept="image/*,video/*"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  if (!file) return
+                  const attachmentType = file.type.startsWith("video") ? "video" : "image"
+                  handleFileChange(event, attachmentType)
+                }}
+              />
+
+              <Input
+                value={message}
+                onChange={(event) => setMessage(event.target.value)}
+                placeholder="Digite sua mensagem..."
+                className="h-11 min-w-0 flex-1 border-0 bg-transparent px-0 text-[15px] shadow-none focus-visible:ring-0"
+                onKeyDown={(event) => event.key === "Enter" && !event.shiftKey && handleSend()}
+                aria-label="Mensagem"
+              />
+
+              <Button
+                size="sm"
+                onClick={handleSend}
+                disabled={!message.trim()}
+                className="h-11 shrink-0 rounded-full bg-emerald-600 px-4 text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 sm:px-5"
+              >
+                <Send className="mr-2 h-4 w-4" />
+                Enviar
+                <ChevronDown className="ml-2 hidden h-4 w-4 opacity-70 sm:inline-flex" />
+              </Button>
+            </div>
+
+            {showEmojiPicker ? (
+              <div className="rounded-[22px] border border-border/60 bg-background/95 p-3 shadow-lg">
+                <div className="grid grid-cols-6 gap-2">
+                  {emojiList.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      className="h-9 w-9 rounded-xl text-lg transition-colors hover:bg-secondary"
+                      onClick={() => insertEmoji(emoji)}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
       </div>
+    </div>
+  )
+}
+
+export function ChatWindow({
+  conversation,
+  onBackToList,
+  onToggleInspector,
+  onSendMessage,
+  onCloseConversation,
+  onReturnConversation,
+  onTransferConversation,
+  onCreateConversation,
+  onSearchConversation,
+  onOpenShortcuts,
+  onOpenInternalChat,
+  isInspectorOpen,
+}: ChatWindowProps) {
+  if (!conversation) {
+    return (
+      <ChatWindowEmpty
+        onCreateConversation={onCreateConversation}
+        onSearchConversation={onSearchConversation}
+      />
+    )
+  }
+
+  return (
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-[22px] border border-border/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,245,239,0.94))] shadow-[0_28px_70px_-45px_rgba(15,23,42,0.55)] backdrop-blur sm:rounded-[28px]">
+      <ChatWindowHeader
+        key={`header-${conversation.id}`}
+        conversation={conversation}
+        onBackToList={onBackToList}
+        onToggleInspector={onToggleInspector}
+        onCloseConversation={onCloseConversation}
+        onReturnConversation={onReturnConversation}
+        onTransferConversation={onTransferConversation}
+        onSearchConversation={onSearchConversation}
+        onOpenShortcuts={onOpenShortcuts}
+        onOpenInternalChat={onOpenInternalChat}
+        isInspectorOpen={isInspectorOpen}
+      />
+
+      <ChatWindowMessageList
+        conversation={conversation}
+      />
+
+      <ChatWindowInput
+        key={`input-${conversation.id}`}
+        onSendMessage={onSendMessage}
+      />
     </section>
   )
 }
