@@ -46,10 +46,16 @@ export default function CampaignsPage() {
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    for (let index = 0; index < audience.length; index += 1) {
-      await delay(650);
-      setProgress(((index + 1) / audience.length) * 100);
-    }
+    // Performance Optimization: Replaced O(N) sequential delay with parallel execution.
+    // This allows simulated concurrent requests to resolve much faster.
+    let completedCount = 0;
+    await Promise.all(
+      audience.map(async () => {
+        await delay(650);
+        completedCount += 1;
+        setProgress((completedCount / audience.length) * 100);
+      })
+    );
 
     setIsSending(false);
     toast.success("Campanha enviada com sucesso!");
