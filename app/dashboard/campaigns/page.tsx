@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +25,14 @@ export default function CampaignsPage() {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateBody, setNewTemplateBody] = useState("");
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
+
+  // ⚡ Bolt: Memoize the selected template body text to avoid O(N) array search on every render
+  const selectedTemplateBodyText = useMemo(() => {
+    if (!selectedTemplate) return null;
+    return templates
+      .find((template) => template.id === selectedTemplate)
+      ?.components.find((component) => component.type === "BODY")?.text;
+  }, [selectedTemplate, templates]);
 
   const audience =
     selectedTag === "all" ? initialConversations : initialConversations.filter((contact) => contact.tags.includes(selectedTag));
@@ -178,7 +186,7 @@ export default function CampaignsPage() {
                 {selectedTemplate ? (
                   <div className="rounded-[22px] border border-dashed border-border/70 bg-muted/20 p-4 text-sm">
                     <p className="whitespace-pre-wrap">
-                      {templates.find((template) => template.id === selectedTemplate)?.components.find((component) => component.type === "BODY")?.text}
+                      {selectedTemplateBodyText}
                     </p>
                   </div>
                 ) : null}
