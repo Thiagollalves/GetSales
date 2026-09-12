@@ -1,50 +1,24 @@
 "use client";
 
-import { useRef, useState, type ChangeEvent, type ComponentProps } from "react";
+import { useRef, useState, type ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import { Conversation, initialConversations } from "@/lib/mock-data";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { notifyAction } from "@/lib/button-actions";
 import { WorkspaceShell } from "@/components/dashboard/workspace-shell";
 import { Download, FileSpreadsheet, Search, UserPlus } from "lucide-react";
-
-const CHANNEL_OPTIONS = ["whatsapp", "instagram", "telegram", "email", "webchat"] as const;
-const STATUS_OPTIONS = ["novo", "ativo", "resolvido"] as const;
-
-const contactFormSchema = z.object({
-  name: z.string().min(2, "Informe o nome completo do contato"),
-  channel: z.enum(CHANNEL_OPTIONS),
-  phone: z.string().max(32).optional(),
-  email: z.union([z.string().email("Informe um e-mail válido"), z.literal("")]),
-  tags: z.string().optional(),
-  status: z.enum(STATUS_OPTIONS),
-});
-
-type ContactFormValues = z.infer<typeof contactFormSchema>;
+import { ContactDialog } from "./contact-dialog";
+import { ContactTable } from "./contact-table";
+import { ContactMobileList } from "./contact-mobile-list";
+import {
+  CHANNEL_OPTIONS,
+  contactFormSchema,
+  ContactFormValues,
+  defaultFormValues,
+} from "./contact-schema";
 
 type CsvField = "name" | "channel" | "phone" | "email" | "tags" | "status" | "message" | "time";
 
@@ -78,15 +52,6 @@ const FIELD_ALIASES: Record<CsvField, string[]> = {
 };
 
 const CONTACT_FILE_HEADER = ["Nome", "Canal", "Telefone", "Email", "Tags", "Status"];
-
-const defaultFormValues: ContactFormValues = {
-  name: "",
-  channel: "whatsapp",
-  phone: "",
-  email: "",
-  tags: "",
-  status: "ativo",
-};
 
 const parseCsvLine = (line: string) => {
   const values: string[] = [];
@@ -239,85 +204,6 @@ const parseContactsFromCsv = (csv: string, nextId: () => number): Conversation[]
     return acc;
   }, []);
 };
-
-const getStatusBadgeVariant = (status: Conversation["status"]): ComponentProps<typeof Badge>["variant"] => {
-  switch (status) {
-    case "novo":
-      return "default";
-    case "resolvido":
-      return "outline";
-    default:
-      return "secondary";
-  }
-};
-
-const getStatusLabel = (status: Conversation["status"]) => {
-  if (status === "novo") {
-    return "Novo Lead";
-  }
-
-  if (status === "resolvido") {
-    return "Resolvido";
-  }
-
-  return "Ativo";
-};
-
-function ContactMobileCard({
-  contact,
-  onEdit,
-}: {
-  contact: Conversation
-  onEdit: (contact: Conversation) => void
-}) {
-  const noteCount = contact.internalNotes?.length ?? 0
-
-  return (
-    <article className="rounded-2xl border border-border/60 bg-card p-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-            {contact.avatar}
-          </div>
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-semibold text-foreground">{contact.name}</h3>
-            <p className="truncate text-xs text-muted-foreground">{contact.phone || "Sem telefone"}</p>
-            <p className="truncate text-xs text-muted-foreground">{contact.email || "Sem e-mail"}</p>
-          </div>
-        </div>
-
-        <Button variant="ghost" size="sm" className="h-8 rounded-full px-3 text-xs" onClick={() => onEdit(contact)}>
-          Editar
-        </Button>
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <Badge variant={getStatusBadgeVariant(contact.status)} className="rounded-full px-2.5 py-1 text-[11px]">
-          {getStatusLabel(contact.status)}
-        </Badge>
-        <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px] capitalize">
-          {contact.channel}
-        </Badge>
-        <Badge variant="secondary" className="rounded-full px-2.5 py-1 text-[11px]">
-          Score {contact.score}
-        </Badge>
-        {noteCount > 0 ? (
-          <Badge variant="outline" className="rounded-full px-2.5 py-1 text-[11px]">
-            {noteCount} nota{noteCount > 1 ? "s" : ""}
-          </Badge>
-        ) : null}
-      </div>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {contact.tags.slice(0, 4).map((tag) => (
-          <Badge key={tag} variant="secondary" className="rounded-full px-2.5 py-1 text-[11px] font-medium">
-            {tag}
-          </Badge>
-        ))}
-      </div>
-    </article>
-  )
-}
 
 export default function ContactsPage() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -532,225 +418,17 @@ export default function ContactsPage() {
         className="hidden"
         onChange={handleFileImport}
       />
-      <div className="grid gap-3 md:hidden">
-        {filteredContacts.map(contact => (
-          <ContactMobileCard key={contact.id} contact={contact} onEdit={openEditDialog} />
-        ))}
-        {filteredContacts.length === 0 ? (
-          <Card className="border-dashed">
-            <CardContent className="px-4 py-8 text-center">
-              <p className="text-sm font-medium text-foreground">Nenhum contato encontrado</p>
-              <p className="mt-1 text-sm text-muted-foreground">Tente uma busca diferente ou adicione um novo contato.</p>
-            </CardContent>
-          </Card>
-        ) : null}
-      </div>
 
-      <Card className="hidden border-border/60 bg-card/90 shadow-sm md:block">
-        <CardHeader>
-          <CardTitle>Base de Contatos ({filteredContacts.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Canal</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Tags</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredContacts.map(contact => (
-                <TableRow key={contact.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-                        {contact.avatar}
-                      </div>
-                      <div className="flex flex-col">
-                        <span>{contact.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {contact.phone || "Sem telefone"}
-                        </span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize">{contact.channel}</TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(contact.status)}>
-                      {getStatusLabel(contact.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {contact.tags.map(tag => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => openEditDialog(contact)}
-                    >
-                      Editar
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <ContactMobileList contacts={filteredContacts} onEdit={openEditDialog} />
+      <ContactTable contacts={filteredContacts} onEdit={openEditDialog} />
 
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogMode === "edit" ? "Editar contato" : "Novo contato"}
-            </DialogTitle>
-            <DialogDescription>
-              Informe os dados principais para manter a base atualizada.
-            </DialogDescription>
-          </DialogHeader>
-
-          <Form {...form}>
-            <form
-              className="space-y-4"
-              onSubmit={form.handleSubmit(handleDialogSubmit)}
-            >
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nome completo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Thiago Alves" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="channel"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Canal principal</FormLabel>
-                      <FormControl>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um canal" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CHANNEL_OPTIONS.map(option => (
-                              <SelectItem key={option} value={option}>
-                                {option.charAt(0).toUpperCase() + option.slice(1)}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status atual</FormLabel>
-                      <FormControl>
-                        <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione um status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="novo">Novo Lead</SelectItem>
-                            <SelectItem value="ativo">Ativo</SelectItem>
-                            <SelectItem value="resolvido">Resolvido</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Telefone</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="+55 11 99999-9999"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>Opcional</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="contato@email.com" {...field} />
-                      </FormControl>
-                      <FormDescription>Opcional</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <Input placeholder="VIP, Prospect, Suporte" {...field} />
-                    </FormControl>
-                    <FormDescription>Separe as tags por vírgula.</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <DialogFooter className="flex justify-end space-x-2 pt-2">
-                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
-                  Cancelar
-                </Button>
-                <Button type="submit">
-                  {dialogMode === "edit" ? "Atualizar contato" : "Salvar contato"}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
+      <ContactDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        mode={dialogMode}
+        form={form}
+        onSubmit={handleDialogSubmit}
+      />
     </WorkspaceShell>
   );
 }
