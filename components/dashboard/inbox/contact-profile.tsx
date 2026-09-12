@@ -168,7 +168,7 @@ export function ContactProfile({
       <div className="py-4 border-b border-border space-y-3">
         <h4 className="text-sm font-semibold flex items-center gap-2">
           Informações
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={handleEditProfile}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={handleEditProfile} aria-label="Editar informações do contato">
             <Edit className="h-3 w-3" />
           </Button>
         </h4>
