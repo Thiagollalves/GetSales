@@ -94,9 +94,9 @@ interface AutomationBuilderProps {
   onBack: () => void
 }
 
-export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps) {
-  const [name, setName] = useState(automation?.name ?? "Nova Automação")
-  const [nodes, setNodes] = useState<AutomationNode[]>(automation?.nodes ?? [])
+// Custom hook to manage automation nodes state and operations
+function useAutomationNodes(initialNodes: AutomationNode[]) {
+  const [nodes, setNodes] = useState<AutomationNode[]>(initialNodes)
   const [draggingNode, setDraggingNode] = useState<string | null>(null)
 
   const handleDragStart = (nodeId: string) => {
@@ -114,19 +114,112 @@ export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps
       data: { label, icon },
       position: { x: 100, y: nodes.length * 100 + 50 },
     }
-    setNodes([...nodes, newNode])
+    setNodes((prevNodes) => [...prevNodes, newNode])
   }
 
   const removeNode = (nodeId: string) => {
-    setNodes(nodes.filter((n) => n.id !== nodeId))
+    setNodes((prevNodes) => prevNodes.filter((n) => n.id !== nodeId))
   }
 
   const moveNode = (fromIndex: number, toIndex: number) => {
-    const newNodes = [...nodes]
-    const [removed] = newNodes.splice(fromIndex, 1)
-    newNodes.splice(toIndex, 0, removed)
-    setNodes(newNodes)
+    setNodes((prevNodes) => {
+      const newNodes = [...prevNodes]
+      const [removed] = newNodes.splice(fromIndex, 1)
+      newNodes.splice(toIndex, 0, removed)
+      return newNodes
+    })
   }
+
+  return {
+    nodes,
+    draggingNode,
+    handleDragStart,
+    handleDragEnd,
+    addNode,
+    removeNode,
+    moveNode,
+  }
+}
+
+// Extracted component for individual nodes
+function AutomationNodeCard({
+  node,
+  index,
+  draggingNode,
+  onDragStart,
+  onDragEnd,
+  onDrop,
+  onRemove,
+}: {
+  node: AutomationNode
+  index: number
+  draggingNode: string | null
+  onDragStart: (id: string) => void
+  onDragEnd: () => void
+  onDrop: (nodeId: string, index: number) => void
+  onRemove: (id: string) => void
+}) {
+  return (
+    <Card
+      draggable
+      onDragStart={() => onDragStart(node.id)}
+      onDragEnd={onDragEnd}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={() => onDrop(node.id, index)}
+      className={`
+        p-4 cursor-grab active:cursor-grabbing transition-all duration-200
+        bg-gradient-to-r ${nodeColors[node.type].gradient} to-card
+        border-2 ${nodeColors[node.type].border}
+        hover:shadow-lg
+        ${draggingNode === node.id ? "opacity-50 rotate-1 shadow-xl scale-[1.02]" : ""}
+      `}
+    >
+      <div className="flex items-center gap-3">
+        <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+        <div
+          className={`
+            w-10 h-10 rounded-xl flex items-center justify-center
+            ${nodeColors[node.type].bg} ${nodeColors[node.type].text}
+          `}
+        >
+          {nodeIcons[node.data.icon]}
+        </div>
+        <div className="flex-1">
+          <p className={`font-semibold text-sm ${nodeColors[node.type].text}`}>{node.data.label}</p>
+          <p className="text-xs text-muted-foreground capitalize">
+            {node.type === "trigger"
+              ? "Gatilho"
+              : node.type === "action"
+                ? "Ação"
+                : node.type === "condition"
+                  ? "Condição"
+                  : "Aguardar"}
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+          onClick={() => onRemove(node.id)}
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </div>
+    </Card>
+  )
+}
+
+export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps) {
+  const [name, setName] = useState(automation?.name ?? "Nova Automação")
+  const {
+    nodes,
+    draggingNode,
+    handleDragStart,
+    handleDragEnd,
+    addNode,
+    removeNode,
+    moveNode,
+  } = useAutomationNodes(automation?.nodes ?? [])
 
   const handleTestAutomation = () => {
     notifyAction("Testar automação", `Executando um teste para "${name}".`)
@@ -219,57 +312,20 @@ export function AutomationBuilder({ automation, onBack }: AutomationBuilderProps
             <div className="max-w-md mx-auto space-y-3">
               {nodes.map((node, index) => (
                 <div key={node.id}>
-                  <Card
-                    draggable
-                    onDragStart={() => handleDragStart(node.id)}
+                  <AutomationNodeCard
+                    node={node}
+                    index={index}
+                    draggingNode={draggingNode}
+                    onDragStart={handleDragStart}
                     onDragEnd={handleDragEnd}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (draggingNode && draggingNode !== node.id) {
+                    onDrop={(targetId, targetIndex) => {
+                      if (draggingNode && draggingNode !== targetId) {
                         const fromIndex = nodes.findIndex((n) => n.id === draggingNode)
-                        moveNode(fromIndex, index)
+                        moveNode(fromIndex, targetIndex)
                       }
                     }}
-                    className={`
-                      p-4 cursor-grab active:cursor-grabbing transition-all duration-200
-                      bg-gradient-to-r ${nodeColors[node.type].gradient} to-card
-                      border-2 ${nodeColors[node.type].border}
-                      hover:shadow-lg
-                      ${draggingNode === node.id ? "opacity-50 rotate-1 shadow-xl scale-[1.02]" : ""}
-                    `}
-                  >
-                    <div className="flex items-center gap-3">
-                      <GripVertical className="h-4 w-4 text-muted-foreground/50" />
-                      <div
-                        className={`
-                          w-10 h-10 rounded-xl flex items-center justify-center
-                          ${nodeColors[node.type].bg} ${nodeColors[node.type].text}
-                        `}
-                      >
-                        {nodeIcons[node.data.icon]}
-                      </div>
-                      <div className="flex-1">
-                        <p className={`font-semibold text-sm ${nodeColors[node.type].text}`}>{node.data.label}</p>
-                        <p className="text-xs text-muted-foreground capitalize">
-                          {node.type === "trigger"
-                            ? "Gatilho"
-                            : node.type === "action"
-                              ? "Ação"
-                              : node.type === "condition"
-                                ? "Condição"
-                                : "Aguardar"}
-                        </p>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                        onClick={() => removeNode(node.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </Card>
+                    onRemove={removeNode}
+                  />
                   {index < nodes.length - 1 && (
                     <div className="flex justify-center py-2">
                       <div className="w-0.5 h-8 bg-gradient-to-b from-border to-transparent rounded-full" />
