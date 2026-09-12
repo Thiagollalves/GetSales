@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -210,8 +210,21 @@ export default function PipelinePage() {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
+  const stageLookup = useMemo(() => {
+    const map = new Map<string, Stage>();
+    stages.forEach((stage) => {
+      map.set(stage.id, stage);
+      stage.leads.forEach((lead) => {
+        map.set(lead.id, stage);
+      });
+    });
+    return map;
+  }, [stages]);
+
   const findStage = (id: string) => {
-    return stages.find(s => s.id === id || s.leads.some(l => l.id === id));
+    // Optimization: O(1) lookup instead of O(N*M) nested array search.
+    // This improves performance during frequent drag and drop events.
+    return stageLookup.get(id);
   };
 
   const createLead = (stageId: string): Lead => {
