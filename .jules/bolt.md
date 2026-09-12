@@ -1,0 +1,3 @@
+## 2025-02-14 - Playwright Verification Cleanup & Lockfile Management
+**Learning:** When performing UI verification using ad-hoc Playwright scripts or benchmarking with scratchpad files, it is crucial to ensure these files are removed before finalizing the commit. Adding temporary dependencies like `playwright` can generate massive lockfile changes (`pnpm-lock.yaml`) which should not be committed if not originally tracked in version control, especially for minor performance optimizations.
+**Action:** Added a directive to ensure all temporary workspace files (benchmarks, UI tests) are deleted and `pnpm-lock.yaml` is untracked/removed before pre-commit review to prevent repository pollution.
