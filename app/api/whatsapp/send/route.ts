@@ -15,6 +15,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // 🛡️ SSRF/Injection Prevention: Strict validation for URL interpolation and payload
+    if (!/^\+?[1-9]\d{1,14}$/.test(String(phone))) {
+      return NextResponse.json(
+        { error: 'Invalid phone format' },
+        { status: 400 }
+      );
+    }
+
+    if (!/^\d+$/.test(String(resolvedPhoneId))) {
+      return NextResponse.json(
+        { error: 'Invalid phone ID format' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {

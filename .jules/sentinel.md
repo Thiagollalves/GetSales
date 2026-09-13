@@ -1,0 +1,4 @@
+## 2024-05-18 - Unvalidated Input in Direct Backend Proxy
+**Vulnerability:** The WhatsApp send API endpoint (`app/api/whatsapp/send/route.ts`) constructed a third-party API request using unvalidated user input (`phoneId`) in the URL and (`phone`) in the payload body. This proxy was called directly from the frontend, creating SSRF and payload injection risks.
+**Learning:** Backend routes acting as proxies must defensively validate all inputs they forward or interpolate into URLs, even if the primary secret (`META_WHATSAPP_TOKEN`) is provided securely. Trust boundaries require strict validation before external system interpolation.
+**Prevention:** Always use regex or schema validation (like Zod) to strictly type check and constrain the format of user-provided variables (like numeric IDs or phone numbers) before inserting them into URLs or third-party request payloads.
