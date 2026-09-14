@@ -59,3 +59,18 @@ test("session token uses configured credentials in production", () => {
   assert.equal(isValidAdminSessionToken(token), true)
   assert.equal(isValidAdminSessionToken("secret-123"), false)
 })
+
+test("isValidAdminSessionToken returns false when base64url decoding fails", (t) => {
+  const originalFrom = Buffer.from
+  t.mock.method(Buffer, "from", (value: any, encoding?: BufferEncoding) => {
+    if (encoding === "base64url") {
+      throw new Error("Simulated buffer error")
+    }
+    return originalFrom(value, encoding)
+  })
+
+  // The fallback behavior in isValidAdminSessionToken is triggered when decodeBase64Url
+  // catches an exception. By mocking Buffer.from to throw when decoding base64url,
+  // we ensure the catch block inside decodeBase64Url executes, returning null.
+  assert.equal(isValidAdminSessionToken("v1.invalid_base64_url.signature"), false)
+})
