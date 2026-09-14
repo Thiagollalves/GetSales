@@ -2,6 +2,37 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabase/server";
 import { META_WEBHOOK_SIGNATURE_HEADER, verifyMetaWebhookSignature } from "@/lib/meta-webhook";
 
+interface WhatsAppMessage {
+  id?: string;
+  from?: string;
+  type?: string;
+  text?: { body?: string };
+  timestamp?: string;
+  [key: string]: unknown;
+}
+
+interface WhatsAppContact {
+  profile?: { name?: string };
+}
+
+interface WhatsAppChangeValue {
+  metadata?: { phone_number_id?: string };
+  contacts?: WhatsAppContact[];
+  messages?: WhatsAppMessage[];
+}
+
+interface WhatsAppChange {
+  value?: WhatsAppChangeValue;
+}
+
+interface WhatsAppEntry {
+  changes?: WhatsAppChange[];
+}
+
+interface WhatsAppWebhookPayload {
+  entry?: WhatsAppEntry[];
+}
+
 const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN?.trim();
 const META_APP_SECRET = process.env.META_APP_SECRET?.trim();
 
@@ -48,11 +79,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const entries = Array.isArray((payload as any)?.entry) ? ((payload as any).entry as any[]) : [];
+    const webhookPayload = payload as WhatsAppWebhookPayload;
+    const entries = Array.isArray(webhookPayload?.entry) ? webhookPayload.entry : [];
 
-    const messages = entries.flatMap((entry: any) =>
+    const messages = entries.flatMap((entry: WhatsAppEntry) =>
       Array.isArray(entry?.changes)
-        ? entry.changes.flatMap((change: any) =>
+        ? entry.changes.flatMap((change: WhatsAppChange) =>
             Array.isArray(change?.value?.messages) ? change.value.messages : []
           )
         : []
@@ -62,15 +94,15 @@ export async function POST(request: Request) {
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
     if (supabase && messages.length > 0) {
-      const inserts = entries.flatMap((entry: any) =>
+      const inserts = entries.flatMap((entry: WhatsAppEntry) =>
         Array.isArray(entry?.changes)
-          ? entry.changes.flatMap((change: any) => {
+          ? entry.changes.flatMap((change: WhatsAppChange) => {
               const metadata = change?.value?.metadata ?? {};
               const contacts = Array.isArray(change?.value?.contacts) ? change.value.contacts : [];
               const contact = contacts[0];
 
               return Array.isArray(change?.value?.messages)
-                ? change.value.messages.map((message: any) => ({
+                ? change.value.messages.map((message: WhatsAppMessage) => ({
                     message_id: message.id ?? null,
                     from_number: message.from ?? null,
                     message_type: message.type ?? null,
