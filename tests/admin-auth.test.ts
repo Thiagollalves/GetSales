@@ -8,6 +8,8 @@ import {
   hasAdminAccessToken,
   isValidAdminCredentials,
   isValidAdminSessionToken,
+  getAdminSessionFromCookieHeader,
+  ADMIN_COOKIE_NAME,
 } from "../lib/admin-auth.ts"
 
 const envKeys = ["NODE_ENV", "ADMIN_ACCESS_USERNAME", "ADMIN_ACCESS_TOKEN"] as const
@@ -58,4 +60,16 @@ test("session token uses configured credentials in production", () => {
   assert.equal(isValidAdminCredentials("admin", "secret-123"), true)
   assert.equal(isValidAdminSessionToken(token), true)
   assert.equal(isValidAdminSessionToken("secret-123"), false)
+})
+
+test("admin auth functions return raw cookie value when decodeURIComponent fails due to malformed URI", () => {
+  const malformedCookieValue = "%E0%A4%A"
+  const cookieHeader = `${ADMIN_COOKIE_NAME}=${malformedCookieValue}`
+
+  // verify decoding actually fails
+  assert.throws(() => decodeURIComponent(malformedCookieValue))
+
+  // verify the function gracefully falls back to raw value through public auth function
+  const value = getAdminSessionFromCookieHeader(cookieHeader)
+  assert.equal(value, malformedCookieValue)
 })
