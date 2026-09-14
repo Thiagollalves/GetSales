@@ -56,7 +56,7 @@ export function hasAdminAccessToken() {
     return true
   }
 
-  return true
+  return false
 }
 
 export function getAdminAccessToken() {

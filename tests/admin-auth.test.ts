@@ -29,7 +29,7 @@ test("admin auth keeps dev fallback only outside production", () => {
   delete process.env.ADMIN_ACCESS_TOKEN
   process.env.NODE_ENV = "development"
 
-  assert.equal(hasAdminAccessToken(), true)
+  assert.equal(hasAdminAccessToken(), false)
   assert.equal(getAdminUsername(), "admin")
   assert.equal(getAdminPassword(), "123456")
   assert.equal(isValidAdminCredentials("admin", "123456"), true)
@@ -41,7 +41,7 @@ test("admin auth keeps the fallback available in production", () => {
   delete process.env.ADMIN_ACCESS_TOKEN
   process.env.NODE_ENV = "production"
 
-  assert.equal(hasAdminAccessToken(), true)
+  assert.equal(hasAdminAccessToken(), false)
   assert.equal(getAdminUsername(), "admin")
   assert.equal(getAdminPassword(), "123456")
   assert.equal(isValidAdminCredentials("admin", "123456"), true)
