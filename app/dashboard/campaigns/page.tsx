@@ -46,10 +46,14 @@ export default function CampaignsPage() {
 
     const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-    for (let index = 0; index < audience.length; index += 1) {
-      await delay(650);
-      setProgress(((index + 1) / audience.length) * 100);
-    }
+    let completed = 0;
+    await Promise.all(
+      audience.map(async () => {
+        await delay(650);
+        completed += 1;
+        setProgress((completed / audience.length) * 100);
+      })
+    );
 
     setIsSending(false);
     toast.success("Campanha enviada com sucesso!");
