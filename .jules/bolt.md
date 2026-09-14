@@ -1,0 +1,3 @@
+## 2024-11-20 - Optimize tag filtering performance in campaigns
+**Learning:** In React components dealing with dynamically filtered mock data or large arrays (like campaign contacts), calculating tag frequencies iteratively via inline `.filter()` in map loops leads to O(N*M) time complexity, potentially causing slow renders.
+**Action:** Use `React.useMemo` to construct a single-pass frequency map `counts` in O(N) time and rely on O(1) object key lookups within the render loop instead of recalculating counts repeatedly. Ensure `useMemo` dependency array accurately contains variables (like `initialConversations`). When `pnpm install` results in unrelated `pnpm-lock.yaml` changes, unstage and discard it before committing to avoid muddying smaller optimizations.

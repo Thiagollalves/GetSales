@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,20 @@ export default function CampaignsPage() {
 
   const audience =
     selectedTag === "all" ? initialConversations : initialConversations.filter((contact) => contact.tags.includes(selectedTag));
-  const uniqueTags = Array.from(new Set(initialConversations.flatMap((contact) => contact.tags)));
+
+  // ⚡ Bolt: Optimize tag count calculation to avoid O(N*M) filtering during render
+  const { uniqueTags, tagCounts } = React.useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const contact of initialConversations) {
+      for (const tag of contact.tags) {
+        counts[tag] = (counts[tag] || 0) + 1;
+      }
+    }
+    return {
+      uniqueTags: Object.keys(counts),
+      tagCounts: counts
+    };
+  }, [initialConversations]);
 
   const handleSendCampaign = async () => {
     if (!selectedTemplate) {
@@ -125,7 +138,7 @@ export default function CampaignsPage() {
                       <SelectItem value="all">Todos os Contatos ({initialConversations.length})</SelectItem>
                       {uniqueTags.map((tag) => (
                         <SelectItem key={tag} value={tag}>
-                          {tag} ({initialConversations.filter((contact) => contact.tags.includes(tag)).length})
+                          {tag} ({tagCounts[tag]})
                         </SelectItem>
                       ))}
                     </SelectContent>
