@@ -5,6 +5,49 @@ import { META_WEBHOOK_SIGNATURE_HEADER, verifyMetaWebhookSignature } from "@/lib
 const META_VERIFY_TOKEN = process.env.META_VERIFY_TOKEN?.trim();
 const META_APP_SECRET = process.env.META_APP_SECRET?.trim();
 
+interface WhatsAppWebhookMessage {
+  from?: string;
+  id?: string;
+  timestamp?: string;
+  type?: string;
+  text?: {
+    body?: string;
+  };
+  [key: string]: unknown;
+}
+
+interface WhatsAppWebhookContact {
+  profile?: {
+    name?: string;
+  };
+  wa_id?: string;
+}
+
+interface WhatsAppWebhookValue {
+  messaging_product?: string;
+  metadata?: {
+    display_phone_number?: string;
+    phone_number_id?: string;
+  };
+  contacts?: WhatsAppWebhookContact[];
+  messages?: WhatsAppWebhookMessage[];
+}
+
+interface WhatsAppWebhookChange {
+  value?: WhatsAppWebhookValue;
+  field?: string;
+}
+
+interface WhatsAppWebhookEntry {
+  id?: string;
+  changes?: WhatsAppWebhookChange[];
+}
+
+interface WhatsAppWebhookPayload {
+  object?: string;
+  entry?: WhatsAppWebhookEntry[];
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const mode = searchParams.get("hub.mode");
@@ -41,18 +84,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
     }
 
-    let payload: unknown;
+    let payload: WhatsAppWebhookPayload | null = null;
     try {
-      payload = rawBody ? JSON.parse(rawBody) : null;
+      payload = rawBody ? (JSON.parse(rawBody) as WhatsAppWebhookPayload) : null;
     } catch {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
 
-    const entries = Array.isArray((payload as any)?.entry) ? ((payload as any).entry as any[]) : [];
+    const entries: WhatsAppWebhookEntry[] = Array.isArray(payload?.entry) ? payload.entry : [];
 
-    const messages = entries.flatMap((entry: any) =>
+    const messages = entries.flatMap((entry: WhatsAppWebhookEntry) =>
       Array.isArray(entry?.changes)
-        ? entry.changes.flatMap((change: any) =>
+        ? entry.changes.flatMap((change: WhatsAppWebhookChange) =>
             Array.isArray(change?.value?.messages) ? change.value.messages : []
           )
         : []
@@ -62,15 +105,15 @@ export async function POST(request: Request) {
     const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL;
 
     if (supabase && messages.length > 0) {
-      const inserts = entries.flatMap((entry: any) =>
+      const inserts = entries.flatMap((entry: WhatsAppWebhookEntry) =>
         Array.isArray(entry?.changes)
-          ? entry.changes.flatMap((change: any) => {
+          ? entry.changes.flatMap((change: WhatsAppWebhookChange) => {
               const metadata = change?.value?.metadata ?? {};
               const contacts = Array.isArray(change?.value?.contacts) ? change.value.contacts : [];
               const contact = contacts[0];
 
               return Array.isArray(change?.value?.messages)
-                ? change.value.messages.map((message: any) => ({
+                ? change.value.messages.map((message: WhatsAppWebhookMessage) => ({
                     message_id: message.id ?? null,
                     from_number: message.from ?? null,
                     message_type: message.type ?? null,
