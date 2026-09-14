@@ -66,24 +66,37 @@ function sanitizeFlowPayload(payload: FlowMutationPayload) {
   }
 }
 
+const seedingPromises = new Map<string, Promise<void>>()
+
 async function ensureSeeded<T extends { id: number }>(
   client: NonNullable<ReturnType<typeof getSupabaseAdminClient>>,
   table: string,
   seeds: T[],
 ) {
-  const { data, error } = await client.from(table).select("id").limit(1)
-  if (error) {
-    throw error
+  if (seedingPromises.has(table)) {
+    return seedingPromises.get(table)!
   }
 
-  if (Array.isArray(data) && data.length > 0) {
-    return
-  }
+  const promise = (async () => {
+    const { data, error } = await client.from(table).select("id").limit(1)
+    if (error) {
+      seedingPromises.delete(table)
+      throw error
+    }
 
-  const { error: seedError } = await client.from(table).upsert(seeds, { onConflict: "id" })
-  if (seedError) {
-    throw seedError
-  }
+    if (Array.isArray(data) && data.length > 0) {
+      return
+    }
+
+    const { error: seedError } = await client.from(table).upsert(seeds, { onConflict: "id" })
+    if (seedError) {
+      seedingPromises.delete(table)
+      throw seedError
+    }
+  })()
+
+  seedingPromises.set(table, promise)
+  return promise
 }
 
 async function getNextNumericId(
