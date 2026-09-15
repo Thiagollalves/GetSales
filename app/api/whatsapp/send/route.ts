@@ -15,6 +15,22 @@ export async function POST(request: Request) {
       );
     }
 
+    // Security: Validate phoneId to prevent URL injection/SSRF via path traversal
+    if (!/^\d{1,30}$/.test(String(resolvedPhoneId))) {
+      return NextResponse.json(
+        { error: 'Invalid phoneId format. Must be numeric.' },
+        { status: 400 }
+      );
+    }
+
+    // Security: Validate target phone number
+    if (!/^\+?\d{5,25}$/.test(String(phone))) {
+      return NextResponse.json(
+        { error: 'Invalid phone format.' },
+        { status: 400 }
+      );
+    }
+
     const url = `https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`;
     
     const payload = {
