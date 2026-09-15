@@ -1,0 +1,3 @@
+## 2024-05-18 - Memoizing List Items with Frequent Local State Updates
+**Learning:** In the unified multi-channel dashboard inbox, the parent component (`app/dashboard/inbox/page.tsx`) stores conversation state that updates frequently (e.g., typing in the chat, updating read status). Without memoization, mapping over `conversations` to render `button` tags in `ConversationList` causes O(N) re-renders for every small state change, leading to a performance bottleneck as the inbox grows.
+**Action:** Always extract items in long, frequently-updated lists into separate sub-components wrapped in `React.memo` (like `ConversationItem`), ensuring they only re-render when their specific props (`conv`, `isSelected`) change.
