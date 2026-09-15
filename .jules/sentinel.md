@@ -1,0 +1,4 @@
+## 2024-05-18 - SSRF via Path Traversal in WhatsApp Proxy Endpoint
+**Vulnerability:** The WhatsApp send proxy endpoint (`/api/whatsapp/send`) passed unvalidated `phoneId` values directly into the Facebook Graph API URL (`https://graph.facebook.com/${apiVersion}/${resolvedPhoneId}/messages`).
+**Learning:** Even proxy endpoints that forward requests to known third-party APIs can be vulnerable to Server-Side Request Forgery (SSRF) or URL injection if path parameters derived from user input are not properly validated or sanitized. Malicious actors could pass relative paths like `../../` to manipulate the destination URL.
+**Prevention:** Always strictly validate and sanitize all user input before interpolating it into URLs, especially path variables. Use restrictive regex patterns (e.g., ensuring IDs are strictly numeric) to ensure input conforms to expected formats.
