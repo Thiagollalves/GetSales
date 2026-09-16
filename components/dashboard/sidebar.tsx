@@ -46,7 +46,9 @@ export function DashboardSidebar() {
       {/* Mobile menu button */}
       <button
         onClick={() => setMobileOpen(true)}
-        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-xl bg-sidebar-bg text-sidebar-foreground shadow-lg"
+        className="fixed top-4 left-4 z-50 lg:hidden p-2.5 rounded-xl bg-sidebar-bg text-sidebar-foreground shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-bg"
+        aria-label="Abrir menu"
+        title="Abrir menu"
       >
         <Menu className="h-5 w-5" />
       </button>
@@ -72,7 +74,9 @@ export function DashboardSidebar() {
         {/* Close button for mobile */}
         <button
           onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 lg:hidden p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors"
+          className="absolute top-4 right-4 lg:hidden p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-bg"
+          aria-label="Fechar menu"
+          title="Fechar menu"
         >
           <X className="h-5 w-5" />
         </button>
@@ -170,9 +174,11 @@ export function DashboardSidebar() {
               <p className="text-xs text-sidebar-muted truncate">usuario@empresa.com</p>
             </div>
             <button
-              className="p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors"
+              className="p-1.5 rounded-lg text-sidebar-muted hover:text-sidebar-foreground hover:bg-sidebar-border/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar-bg"
               onClick={handleLogout}
               type="button"
+              aria-label="Sair"
+              title="Sair"
             >
               <LogOut className="h-4 w-4" />
             </button>
