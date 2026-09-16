@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import type { Conversation } from "@/app/dashboard/inbox/page"
 import { Input } from "@/components/ui/input"
 import { Search, Filter } from "lucide-react"
@@ -19,6 +20,57 @@ interface ConversationListProps {
   selectedId: number | null
   onSelect: (conversation: Conversation) => void
 }
+
+const ConversationItem = React.memo(({
+  conv,
+  isSelected,
+  onSelect
+}: {
+  conv: Conversation
+  isSelected: boolean
+  onSelect: (conv: Conversation) => void
+}) => {
+  return (
+    <button
+      onClick={() => onSelect(conv)}
+      className={`
+        w-full p-4 flex items-start gap-3 text-left border-b border-border transition-colors
+        ${isSelected ? "bg-primary/5" : "hover:bg-secondary/50"}
+      `}
+    >
+      <div className="relative shrink-0">
+        <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-sm font-medium">
+          {conv.avatar}
+        </div>
+        <div
+          className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full ${channelColors[conv.channel]} border-2 border-card`}
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between">
+          <span className={`font-medium text-sm ${conv.unread ? "text-foreground" : "text-muted-foreground"}`}>
+            {conv.name}
+          </span>
+          <span className="text-xs text-muted-foreground">{conv.time}</span>
+        </div>
+        <p className={`text-sm truncate mt-0.5 ${conv.unread ? "text-foreground" : "text-muted-foreground"}`}>
+          {conv.lastMessage}
+        </p>
+        {conv.tags.length > 0 && (
+          <div className="flex gap-1 mt-1.5">
+            {conv.tags.slice(0, 2).map((tag) => (
+              <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+      {conv.unread && <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
+    </button>
+  )
+})
+ConversationItem.displayName = "ConversationItem"
 
 export function ConversationList({ conversations, selectedId, onSelect }: ConversationListProps) {
   const handleFilter = () => {
@@ -44,44 +96,12 @@ export function ConversationList({ conversations, selectedId, onSelect }: Conver
       {/* Conversation List */}
       <div className="flex-1 overflow-y-auto">
         {conversations.map((conv) => (
-          <button
+          <ConversationItem
             key={conv.id}
-            onClick={() => onSelect(conv)}
-            className={`
-              w-full p-4 flex items-start gap-3 text-left border-b border-border transition-colors
-              ${selectedId === conv.id ? "bg-primary/5" : "hover:bg-secondary/50"}
-            `}
-          >
-            <div className="relative shrink-0">
-              <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-sm font-medium">
-                {conv.avatar}
-              </div>
-              <div
-                className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full ${channelColors[conv.channel]} border-2 border-card`}
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className={`font-medium text-sm ${conv.unread ? "text-foreground" : "text-muted-foreground"}`}>
-                  {conv.name}
-                </span>
-                <span className="text-xs text-muted-foreground">{conv.time}</span>
-              </div>
-              <p className={`text-sm truncate mt-0.5 ${conv.unread ? "text-foreground" : "text-muted-foreground"}`}>
-                {conv.lastMessage}
-              </p>
-              {conv.tags.length > 0 && (
-                <div className="flex gap-1 mt-1.5">
-                  {conv.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-            </div>
-            {conv.unread && <div className="w-2 h-2 rounded-full bg-primary mt-2 shrink-0" />}
-          </button>
+            conv={conv}
+            isSelected={selectedId === conv.id}
+            onSelect={onSelect}
+          />
         ))}
       </div>
     </div>

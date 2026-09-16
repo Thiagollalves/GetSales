@@ -17,6 +17,10 @@ export default function InboxPage() {
 
   const selectedConversation = conversations.find((c) => c.id === selectedId) || null
 
+  const handleSelectConversation = useCallback((c: Conversation) => {
+    setSelectedId(c.id)
+  }, [])
+
   const createConversation = useCallback(() => {
     const counter = newChatCounter
     const name = `Novo contato ${counter}`
@@ -178,7 +182,7 @@ export default function InboxPage() {
       <ConversationList
         conversations={conversations}
         selectedId={selectedId}
-        onSelect={(c) => setSelectedId(c.id)}
+        onSelect={handleSelectConversation}
       />
       {selectedConversation ? (
         <>
