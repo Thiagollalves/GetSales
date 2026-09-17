@@ -173,12 +173,16 @@ export default function InboxPage() {
     setConversations((prev) => prev.map((c) => (c.id === conversationId ? { ...c, nextMeeting } : c)))
   }
 
+  const handleSelectConversation = useCallback((c: Conversation) => {
+    setSelectedId(c.id)
+  }, [])
+
   return (
     <div className="flex h-[calc(100vh-4rem)]">
       <ConversationList
         conversations={conversations}
         selectedId={selectedId}
-        onSelect={(c) => setSelectedId(c.id)}
+        onSelect={handleSelectConversation}
       />
       {selectedConversation ? (
         <>
