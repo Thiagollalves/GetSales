@@ -102,3 +102,9 @@ curl -X POST https://<sua-url>/api/whatsapp/send \
   -H "Content-Type: application/json" \
   -d '{"phone": "5511999999999", "message": "Olá!"}'
 ```
+
+## 6. Campanhas — primeiro corte do MVP
+
+Rode também a migration `supabase/migrations/20260917_campaigns_mvp.sql`.
+
+O dashboard cria apenas **rascunhos** de campanha oficial. O backend valida nome, público, template e compatibilidade entre tipo de campanha e conexão antes de persistir. Não há endpoint de disparo neste corte: o worker de envio e a confirmação operacional devem ser implementados separadamente, com limites, idempotência e trilha de auditoria.

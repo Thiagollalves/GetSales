@@ -22,8 +22,8 @@ export default function CampaignsPage() {
   const [activeTab, setActiveTab] = useState("broadcast");
   const [selectedTag, setSelectedTag] = useState("all");
   const [selectedTemplate, setSelectedTemplate] = useState<string>("");
-  const [isSending, setIsSending] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [campaignName, setCampaignName] = useState("");
+  const [isCreatingCampaign, setIsCreatingCampaign] = useState(false);
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newTemplateBody, setNewTemplateBody] = useState("");
@@ -32,9 +32,13 @@ export default function CampaignsPage() {
   const audience = useMemo(() => selectCampaignAudience(contacts, selectedTag), [contacts, selectedTag]);
   const tagOptions = useMemo(() => buildCampaignTagOptions(contacts), [contacts]);
 
-  const handleSendCampaign = async () => {
+  const handleCreateCampaignDraft = async () => {
+    if (!campaignName.trim()) {
+      toast.error("Informe o nome da campanha.");
+      return;
+    }
     if (!selectedTemplate) {
-      toast.error("Selecione um modelo para enviar.");
+      toast.error("Selecione um template aprovado.");
       return;
     }
     if (audience.length === 0) {
@@ -42,19 +46,34 @@ export default function CampaignsPage() {
       return;
     }
 
-    setIsSending(true);
-    setProgress(0);
-    toast.info(`Iniciando disparo para ${audience.length} contatos...`);
+    setIsCreatingCampaign(true);
+    try {
+      const response = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: campaignName,
+          kind: "official",
+          connectionId: "official-primary",
+          connectionKind: "official",
+          audienceTag: selectedTag,
+          audienceCount: audience.length,
+          templateId: selectedTemplate,
+        }),
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok) {
+        const details = Array.isArray(payload?.details) ? payload.details.join(" ") : payload?.error;
+        throw new Error(details || "Não foi possível criar o rascunho.");
+      }
 
-    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-    for (let index = 0; index < audience.length; index += 1) {
-      await delay(650);
-      setProgress(((index + 1) / audience.length) * 100);
+      setCampaignName("");
+      toast.success("Rascunho criado. Nenhuma mensagem foi enviada.");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Não foi possível criar o rascunho.");
+    } finally {
+      setIsCreatingCampaign(false);
     }
-
-    setIsSending(false);
-    toast.success("Campanha enviada com sucesso!");
   };
 
   const handleCreateTemplate = () => {
@@ -117,6 +136,19 @@ export default function CampaignsPage() {
                 <CardDescription>Selecione quem receberá esta campanha.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Nome da campanha</label>
+                  <Input
+                    placeholder="ex: Follow-up de clientes"
+                    value={campaignName}
+                    onChange={(event) => setCampaignName(event.target.value)}
+                    maxLength={120}
+                    className="rounded-full"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Este MVP cria um rascunho de campanha oficial; o envio depende de uma etapa posterior, auditável.
+                  </p>
+                </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Segmentação (Tags)</label>
                   <Select value={selectedTag} onValueChange={setSelectedTag}>
@@ -185,16 +217,20 @@ export default function CampaignsPage() {
                 ) : null}
               </CardContent>
               <CardFooter>
-                <Button className="w-full rounded-full" onClick={handleSendCampaign} disabled={isSending || !selectedTemplate}>
-                  {isSending ? (
+                <Button
+                  className="w-full rounded-full"
+                  onClick={handleCreateCampaignDraft}
+                  disabled={isCreatingCampaign || !campaignName.trim() || !selectedTemplate || audience.length === 0}
+                >
+                  {isCreatingCampaign ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Enviando {Math.round(progress)}%
+                      Criando rascunho
                     </>
                   ) : (
                     <>
                       <Send className="mr-2 h-4 w-4" />
-                      Enviar campanha agora
+                      Criar rascunho da campanha
                     </>
                   )}
                 </Button>
@@ -208,7 +244,7 @@ export default function CampaignsPage() {
             <Card className="border-border/60 bg-card/90 shadow-sm">
               <CardHeader>
                 <CardTitle>Criar novo modelo</CardTitle>
-                <CardDescription>O modelo será enviado para aprovação da Meta.</CardDescription>
+                <CardDescription>O modelo fica disponível localmente para compor rascunhos. A integração com a Meta é uma etapa posterior.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -233,7 +269,7 @@ export default function CampaignsPage() {
               </CardContent>
               <CardFooter>
                 <Button onClick={handleCreateTemplate} className="rounded-full">
-                  Salvar e enviar para aprovação
+                  Salvar modelo local
                 </Button>
               </CardFooter>
             </Card>
